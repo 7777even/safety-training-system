@@ -919,6 +919,163 @@
         ]
       }
     },
+    "/api/exam/exams/{examId}/candidates/import": {
+      "post": {
+        "summary": "从 CSV 批量导入考生",
+        "description": "所需权限：exam:exam:import。当前租户范围内按登录名/手机号匹配用户并写入考生（assignmentSource=IMPORT）；登录名重复则跳过（幂等），未匹配或字段非法定位到行。",
+        "tags": [
+          "ExamController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "exam:exam:import",
+        "parameters": [
+          {
+            "name": "examId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "description": "考试 ID。"
+          },
+          {
+            "name": "file",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            },
+            "description": "CSV 文件；表头：登录名,姓名,手机号。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 0
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "successCount",
+                        "skippedCount",
+                        "failedRows",
+                        "fileErrors"
+                      ],
+                      "properties": {
+                        "successCount": {
+                          "type": "integer",
+                          "example": 5
+                        },
+                        "skippedCount": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "failedRows": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "line",
+                              "reason"
+                            ],
+                            "properties": {
+                              "line": {
+                                "type": "integer",
+                                "example": 4
+                              },
+                              "reason": {
+                                "type": "string",
+                                "example": "登录名/手机号未匹配到当前租户用户"
+                              }
+                            }
+                          }
+                        },
+                        "fileErrors": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/exam/exams/{examId}/candidates/export": {
+      "get": {
+        "summary": "导出考生名单 CSV",
+        "description": "所需权限：exam:exam:export。导出该考试全部考生为 UTF-8 BOM CSV（登录名,姓名,部门,状态,最高分,最终成绩）。",
+        "tags": [
+          "ExamController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "exam:exam:export",
+        "parameters": [
+          {
+            "name": "examId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "description": "考试 ID。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV 文件流；Content-Type: text/csv;charset=utf-8。",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
     "/api/exam/exams/{examId}/reviewers": {
       "put": {
         "summary": "替换批阅人",
