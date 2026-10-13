@@ -419,6 +419,156 @@
         ]
       }
     },
+    "/api/system/users/export": {
+      "get": {
+        "summary": "导出用户 CSV",
+        "description": "所需权限：sys:user:export。当前租户范围内、沿用现有筛选条件导出用户为 UTF-8 BOM CSV（Excel 可直接打开）；多组织由操作者切换租户上下文分别导出。",
+        "parameters": [
+          {
+            "name": "query.userCode",
+            "in": "query",
+            "description": "用户编码，支持模糊筛选。",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "zhang"
+            }
+          },
+          {
+            "name": "query.userName",
+            "in": "query",
+            "description": "用户名称，支持模糊筛选。",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "张"
+            }
+          },
+          {
+            "name": "query.status",
+            "in": "query",
+            "description": "用户状态；1 正常，0 停用。",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ],
+              "example": 1
+            }
+          },
+          {
+            "name": "query.deptId",
+            "in": "query",
+            "description": "所属部门 ID。",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV 文件流；Content-Type: text/csv;charset=utf-8，附件形式下载。",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "sys:user:export",
+        "tags": [
+          "SysUserController"
+        ]
+      }
+    },
+    "/api/system/users/import": {
+      "post": {
+        "summary": "从 CSV 批量导入用户",
+        "description": "所需权限：sys:user:import。当前租户范围内、按部门编码归属批量创建用户；登录名重复则跳过（幂等），部门不存在/不属于当前租户或字段非法定位到行。初始密码默认 123456。",
+        "parameters": [
+          {
+            "name": "file",
+            "in": "query",
+            "description": "CSV 文件；表头：登录名,姓名,手机号,部门编码,状态(可选)。",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserImportResult"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "successCount": 5,
+                    "skippedCount": 1,
+                    "failedRows": [
+                      {
+                        "line": 4,
+                        "reason": "部门编码不存在或不属于当前租户"
+                      }
+                    ],
+                    "fileErrors": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "sys:user:import",
+        "tags": [
+          "SysUserController"
+        ]
+      }
+    },
     "/api/system/users/{userId}": {
       "parameters": [
         {
@@ -7226,6 +7376,58 @@
             "maxLength": 64,
             "example": "b03ddf3ca2e714a6548e7495e2a03f5e824eaac9837cd7f159c67b90fb4b7342",
             "writeOnly": true
+          }
+        }
+      },
+      "UserImportResult": {
+        "type": "object",
+        "description": "用户 CSV 导入结果。",
+        "required": [
+          "successCount",
+          "skippedCount",
+          "failedRows",
+          "fileErrors"
+        ],
+        "properties": {
+          "successCount": {
+            "type": "integer",
+            "description": "成功创建的用户数。",
+            "example": 5
+          },
+          "skippedCount": {
+            "type": "integer",
+            "description": "因登录名已存在而跳过的行数（幂等）。",
+            "example": 1
+          },
+          "failedRows": {
+            "type": "array",
+            "description": "逐行失败明细，定位到原始行号与原因。",
+            "items": {
+              "type": "object",
+              "required": [
+                "line",
+                "reason"
+              ],
+              "properties": {
+                "line": {
+                  "type": "integer",
+                  "description": "CSV 原始行号（含表头）。",
+                  "example": 4
+                },
+                "reason": {
+                  "type": "string",
+                  "description": "失败原因。",
+                  "example": "部门编码不存在或不属于当前租户"
+                }
+              }
+            }
+          },
+          "fileErrors": {
+            "type": "array",
+            "description": "文件级错误（如空文件、解析失败）。",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
