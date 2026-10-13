@@ -1,0 +1,647 @@
+:root {
+  /* 将 Element Plus 的基础视觉映射到清爽现代风 Token，组件 API 保持不变。 */
+  --el-color-primary: var(--color-primary);
+  --el-color-primary-dark-2: var(--color-primary-hover);
+  --el-color-primary-light-3: #93c5fd;
+  --el-color-primary-light-5: #bfdbfe;
+  --el-color-primary-light-7: #dbeafe;
+  --el-color-primary-light-8: #eaf2ff;
+  --el-color-primary-light-9: var(--color-primary-subtle);
+
+  --el-text-color-primary: var(--color-text-primary);
+  --el-text-color-regular: var(--color-text-regular);
+  --el-text-color-secondary: var(--color-text-secondary);
+  --el-border-color: var(--color-border);
+  --el-border-color-light: #f3f4f6;
+  --el-fill-color-blank: var(--color-bg-surface);
+  --el-fill-color-light: var(--color-bg-subtle);
+  --el-bg-color: var(--color-bg-surface);
+  --el-bg-color-page: var(--color-bg-page);
+  --el-border-radius-base: var(--radius-control);
+  --el-border-radius-small: 6px;
+  --el-box-shadow-light: var(--shadow-card);
+  --el-card-border-color: var(--color-border);
+  --el-menu-active-color: var(--color-primary);
+  --el-menu-hover-bg-color: var(--color-primary-subtle);
+  --el-menu-bg-color: var(--color-bg-surface);
+  --el-table-border-color: var(--color-border);
+  --el-table-header-bg-color: var(--color-bg-subtle);
+  --el-table-row-hover-bg-color: var(--color-primary-subtle);
+
+  --admin-detail-action-bar-padding: 8px 16px;
+  --admin-detail-action-bar-gap: 12px;
+  --admin-detail-card-bottom-space: 16px;
+}
+
+/* 行内查询表单的选择器不能使用 Element Plus 内容自适应宽度，避免仅显示下拉箭头。页面可用更高优先级的局部样式覆盖。 */
+.el-form--inline .el-select,
+.el-form--inline .el-tree-select {
+  width: 214px;
+}
+
+.el-select__wrapper {
+  width: 100%
+}
+
+/* 卡片仅保留边框与轻阴影，页面可按内容重要性覆盖悬停效果。 */
+.el-card {
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.el-form--inline .el-form-item {
+  margin-right: var(--space-3) !important;
+}
+
+/* 所有后台 Element Plus 组件遵循同一套紧凑密度和卡片边界。 */
+.el-button {
+  min-height: 32px;
+}
+
+.el-alert {
+  min-height: 30px;
+}
+
+/* 控制.el-card__header和.el-card__body的卡片布局方式和内边距 */
+.el-card__header {
+  padding: 2px 16px !important;
+}
+
+.el-card__body {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 16px 0 16px !important;
+}
+
+/* 表格统一紧凑密度：调低行高，单元格内容保持垂直居中。 */
+//表格顶部字段行
+.el-table th.el-table__cell {
+  padding: 4px 0 !important;
+  vertical-align: middle !important;
+}
+
+//表格数据行
+.el-table td.el-table__cell {
+  padding: 4px 0 !important;
+}
+
+.el-table .cell {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  line-height: 20px;
+}
+
+/* 分页器统一紧凑密度：调低按钮与页大小选择器的高度。 */
+.el-pagination {
+  --el-pagination-button-height: 28px;
+  --el-pagination-button-width: 28px;
+
+  height: 32px !important;
+  min-height: 32px !important;
+  align-items: center !important;
+}
+
+.el-pagination .el-input__wrapper,
+.el-pagination .el-select__wrapper {
+  height: 28px !important;
+  min-height: 28px !important;
+}
+
+.el-pagination .el-input__inner {
+  height: 28px !important;
+  line-height: 28px !important;
+}
+
+.el-menu--popup,
+.el-menu--collapse .el-menu .el-sub-menu {
+  --el-menu-item-height: 36px;
+
+  width: 10px;
+  min-width: 100px !important;
+  max-width: 140px;
+  padding: 0 !important;
+}
+
+.el-popper:has(.el-menu--popup) {
+  min-width: 110px !important;
+  max-width: 140px;
+}
+
+.el-menu--popup .el-menu-item,
+.el-menu--popup .el-sub-menu__title {
+  display: flex !important;
+  height: 32px !important;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px !important;
+  line-height: 28px !important;
+  text-align: center;
+}
+
+.el-menu--popup .el-icon {
+  margin-right: 6px;
+  margin-left: 0;
+}
+
+.admin-sidebar-popup.el-popper,
+.admin-sidebar-popup.el-popover {
+  // 收起态浮层同样承载多层级菜单，宽度需容纳最深层级的长标题（如“已签发证书”），避免文字贴住右边缘。
+  width: 128px !important;
+  min-width: 128px !important;
+  max-width: 140px !important;
+  padding: 0 !important;
+}
+
+.admin-sidebar-popup .admin-sidebar-popup__panel {
+  width: 100%;
+  min-width: 128px !important;
+  max-width: 140px;
+  padding: 0 !important;
+}
+
+.admin-sidebar-popup .admin-sidebar-collapsed-nav {
+  min-height: auto;
+}
+
+.admin-sidebar-popup .admin-sidebar-collapsed-nav__item {
+  height: 32px !important;
+  min-height: 32px;
+  line-height: 28px !important;
+}
+
+.admin-list-page {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.admin-list-page>.el-card:first-child {
+  flex: 0 0 auto;
+}
+
+.admin-table-card {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  margin-top: var(--space-2);
+}
+
+.admin-table-card>.el-card__body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.admin-table-card__table {
+  min-height: 0;
+  flex: 1;
+}
+
+.admin-table-card__footer {
+  display: flex;
+  min-height: 36px;
+  margin-top: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border);
+}
+
+/* 业务列表页以课程中心为基准，统一标题、筛选卡和列表卡的垂直节奏。 */
+.admin-business-page {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.admin-business-page__header {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-business-page__header h1 {
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 4px solid var(--color-primary);
+  color: var(--color-text-primary);
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.admin-business-page__header p {
+  margin: var(--space-2) 0 0 var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.admin-business-page__filters {
+  flex: 0 0 auto;
+}
+
+/* 筛选操作必须作为表单项参与换行，避免按钮脱离筛选项或在窄屏时重叠。 */
+.admin-business-page__filters .el-form-item {
+  margin-bottom: 5px;
+}
+
+.admin-business-page__filters .el-form--inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0 var(--space-2);
+}
+
+.admin-business-page__filters .el-form--inline .el-form-item {
+  margin-right: 0;
+}
+
+.admin-business-page__filters .el-form--inline .filter-actions {
+  margin-left: 0;
+  white-space: nowrap;
+}
+
+.admin-business-page__table {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.admin-business-page__table>.el-card__body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.admin-business-page__table .el-table {
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+}
+
+.admin-business-page__pagination {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: flex-end;
+  //margin-top: var(--space-2);
+  margin: 5px 0 !important; // 上下各 5px
+}
+
+/* 表格卡片标题行：左标题、右操作按钮两端对齐，供所有列表页复用。 */
+.admin-business-page__table-heading {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.admin-business-page__table-heading strong {
+  color: var(--color-text-primary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.admin-business-page__table-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* 带页签的列表页统一页签规格：页签条与列表卡标题同级，内容区只做弹性容器，
+   具体内容仍复用 admin-business-page__filters 与 __table，页面不再各写一套页签样式。 */
+.admin-page-tabs {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.admin-page-tabs>.el-tabs__header {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.admin-page-tabs>.el-tabs__content {
+  display: flex;
+  min-width: 0;
+}
+
+.admin-page-tabs .el-tabs__item {
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.admin-page-tabs .el-tabs__item.is-active {
+  color: var(--color-primary);
+}
+
+/* 页签内容与页签条之间由 gap 控制节奏，页签内每层内容纵向排列。 */
+.admin-page-tabs .el-tab-pane {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* 页签是本页主体内容（列表页）时占满剩余高度，使页签内的列表卡与分页保持贴底。 */
+.admin-page-tabs--fill {
+  min-height: 0;
+  flex: 1;
+}
+
+.admin-page-tabs--fill>.el-tabs__content {
+  min-height: 0;
+  flex: 1;
+}
+
+/* 详情与工作台页面复用统一的标题、步骤与内容工作区，避免每个模块各自定义高度。 */
+.admin-detail-page {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.admin-detail-page__header {
+  display: flex;
+  min-height: 48px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.admin-detail-page__header h1 {
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 4px solid var(--color-primary);
+  color: var(--color-text-primary);
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.admin-detail-page__header p {
+  margin: var(--space-2) 0 0 var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+
+
+/* 多步骤页面统一把阶段导航放在独立卡片中，当前阶段使用 Element Plus 主色。 */
+.admin-detail-page__steps {
+  flex: 0 0 auto;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.el-card.admin-detail-page__steps {
+  padding: 0;
+}
+
+.stage-nav,
+.stage-item {
+  display: flex;
+  align-items: center;
+}
+
+.stage-nav {
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-bg-surface);
+}
+
+.stage-item {
+  min-width: 0;
+  flex: 1;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text-regular);
+  cursor: pointer;
+  text-align: left;
+}
+
+.stage-item:hover:not(:disabled),
+.stage-item.is-active {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+}
+
+// .stage-item.is-completed {
+//   color: #fff;
+//   background: var(--color-primary);
+// }
+
+.stage-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.stage-index {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border: 1px solid currentcolor;
+  border-radius: 50%;
+  font-weight: 600;
+}
+
+.stage-item b,
+.stage-item small {
+  display: block;
+}
+
+.stage-item small {
+  margin-top: 3px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+@media (max-width: 1100px) {
+  .stage-item small {
+    display: none;
+  }
+}
+
+.admin-detail-page__surface {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 无步骤详情页和步骤工作区的主内容卡占满剩余空间，卡内滚动而非页面长滚动。 */
+.admin-detail-page__card {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 48px;
+
+    h2 {
+      margin: 0 0 6px;
+      color: var(--color-text-primary);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 22px;
+    }
+
+    p {
+      margin: 0;
+      color: var(--color-text-secondary);
+      font-size: 13px;
+      line-height: 20px;
+    }
+  }
+}
+
+.admin-detail-page__card>.el-card__body {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+/* 详情页三段式工作区：标题固定、内容区滚动、底部操作栏固定，避免操作栏消失或覆盖表单。 */
+// .admin-detail-page__card:has(> .el-card__body > .admin-detail-page__form-scroll + .sticky-actions)>.el-card__body,
+// .admin-detail-page__card:has(> .el-card__body > .admin-detail-page__form-scroll + .admin-detail-action-bar)>.el-card__body {
+//   overflow: hidden;
+// }
+
+/* 所有可编辑的题库、试卷、考试和培训工作台均在此容器内滚动。 */
+.admin-detail-page__form-scroll {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.admin-detail-page__card:has(> .el-card__body > .admin-detail-page__form-scroll + .sticky-actions)>.el-card__body>.sticky-actions,
+.admin-detail-page__card:has(> .el-card__body > .admin-detail-page__form-scroll + .admin-detail-action-bar)>.el-card__body>.admin-detail-action-bar {
+  position: static;
+  margin-top: 0;
+}
+
+/* 常规详情表单以 ElRow、ElCol 两列排布；长文本、说明和分隔项使用整行。 */
+.admin-detail-form {
+  max-width: 100%;
+}
+
+.admin-detail-form .el-form-item {
+  margin-bottom: var(--space-4);
+}
+
+.admin-detail-form .el-row {
+  max-width: 100%;
+}
+
+.admin-detail-form .el-divider,
+.admin-detail-form__wide {
+  max-width: 100%;
+}
+
+.admin-detail-form .el-input,
+.admin-detail-form .el-select,
+.admin-detail-form .el-tree-select,
+.admin-detail-form .el-date-editor {
+  width: 100%;
+}
+
+.admin-detail-form .el-input-number {
+  width: 100%;
+}
+
+.admin-detail-form__wide .el-input,
+.admin-detail-form__wide .el-select,
+.admin-detail-form__wide .el-tree-select,
+.admin-detail-form__wide .el-date-editor,
+.admin-detail-form__wide .el-textarea {
+  width: 100%;
+}
+
+/* 单列详情表单仍限制内容宽度，避免输入控件横跨整个工作区。 */
+.admin-detail-form--single {
+  max-width: 840px;
+}
+
+.admin-detail-form--single .el-input,
+.admin-detail-form--single .el-select,
+.admin-detail-form--single .el-tree-select,
+.admin-detail-form--single .el-date-editor,
+.admin-detail-form--single .el-textarea {
+  width: 100%;
+}
+
+/* 详情页底部操作栏与课程中心的 sticky-actions 一致，始终固定在内容卡底部右侧。 */
+.sticky-actions {
+  position: sticky;
+  z-index: 3;
+  bottom: 0;
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding: var(--space-2) var(--space-6);
+  border-top: 1px solid var(--color-border);
+  background: rgb(249 250 251 / 96%);
+  backdrop-filter: blur(4px);
+}
+
+.admin-detail-action-bar {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  gap: var(--admin-detail-action-bar-gap);
+  padding: var(--admin-detail-action-bar-padding);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-page);
+}
+
+.admin-detail-card-spacing {
+  //margin-bottom: var(--admin-detail-card-bottom-space);
+}
+
+/* el-descriptions 组件中的单元格内容支持换行 */
+.el-descriptions__cell {
+  white-space: pre-wrap;
+}

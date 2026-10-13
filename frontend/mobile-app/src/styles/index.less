@@ -1,0 +1,385 @@
+@import './variables.less';
+@import './layout.less';
+
+/**
+ * 状态筛选分段控件：学习、考试两页共用的单行筛选栏（培训页无状态筛选）。
+ * 每项等分整条宽度且禁止换行，避免逐项胶囊在窄屏被挤到第二行。
+ * 用法：<view class="segmented-filter"><text class="segmented-filter__item"
+ * :class="{ 'segmented-filter__item--active': 选中 }">全部</text></view>
+ */
+.segmented-filter {
+  display: flex;
+  margin-top: 26rpx;
+  padding: 8rpx;
+  border-radius: 999rpx;
+  background: var(--color-bg-surface);
+  box-shadow: 0 8rpx 20rpx rgb(15 23 42 / 6%);
+}
+
+.segmented-filter__item {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 12rpx 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999rpx;
+  color: var(--color-text-secondary);
+  font-size: 23rpx;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.segmented-filter__item--active {
+  background: linear-gradient(135deg, #2563eb 0%, #4f8bff 100%);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 8rpx 18rpx rgb(37 99 235 / 24%);
+}
+
+/**
+ * 学员中心共用骨架：练习、个人考试、收藏课程、讲师关注四类页面统一使用，
+ * 与课程/考试/培训页保持同一「hero 页头 + 阴影卡片」视觉语言，
+ * 避免各页各自复制样式后再次出现分歧。独立前缀不与既有 scoped 样式冲突。
+ * 用法：<view class="learner-page"><view class="learner-hero">…</view> …</view>
+ */
+.learner-page {
+  display: flex;
+  padding: 24rpx 0 64rpx;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.learner-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 40rpx 36rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #155eef 0%, #4f8bff 100%);
+  box-shadow: 0 16rpx 32rpx rgb(37 99 235 / 22%);
+}
+
+.learner-hero__deco {
+  position: absolute;
+  top: -60rpx;
+  right: -40rpx;
+  width: 220rpx;
+  height: 220rpx;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 14%);
+}
+
+.learner-hero__eyebrow {
+  display: block;
+  color: #b9d5ff;
+  font-size: 22rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+}
+
+.learner-hero__title {
+  display: block;
+  margin-top: 12rpx;
+  color: #fff;
+  font-size: 48rpx;
+  font-weight: 700;
+}
+
+.learner-hero__subtitle {
+  display: block;
+  margin-top: 12rpx;
+  color: #dceaff;
+  font-size: 26rpx;
+  line-height: 1.5;
+}
+
+.learner-card {
+  display: flex;
+  padding: 32rpx;
+  flex-direction: column;
+  gap: 16rpx;
+  border-radius: 24rpx;
+  background: var(--color-bg-surface, #fff);
+  box-shadow: 0 8rpx 24rpx rgb(38 39 45 / 6%);
+}
+
+.learner-card__text {
+  display: block;
+  color: var(--color-text-primary, #0f172a);
+  font-size: 30rpx;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/**
+ * 卡片头部：标题 + 右上角标签一行，消息、任务类卡片共用。
+ * 标题用 flex:1 + min-width:0 保证长标题换行时标签仍贴在右上角不被挤出。
+ * 用法：<view class="learner-card__head"><text class="learner-title">…</text>
+ * <text class="learner-badge">…</text></view>
+ */
+.learner-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+/* 头部标题占据剩余宽度并允许收缩，长标题换行时标签仍固定在右上角。 */
+.learner-card__head .learner-title {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 卡片标签与 PC `.portal-chip` 同一视觉语言；状态色与 PC 同值，避免两端各自调色。 */
+.learner-badge {
+  flex: none;
+  padding: 4rpx 18rpx;
+  border-radius: 999rpx;
+  background: var(--color-primary-subtle, #eff6ff);
+  color: var(--color-primary, #2563eb);
+  font-size: 22rpx;
+  line-height: 1.6;
+}
+
+.learner-badge--success {
+  background: #f0f9eb;
+  color: #529b2e;
+}
+
+.learner-badge--warning {
+  background: #fdf6ec;
+  color: #b7791f;
+}
+
+.learner-badge--plain {
+  background: var(--color-bg-subtle, #f9fafb);
+  color: var(--color-text-regular, #374151);
+}
+
+.learner-title {
+  display: block;
+  color: var(--color-text-primary, #0f172a);
+  font-size: 33rpx;
+  font-weight: 700;
+}
+
+.learner-meta {
+  display: block;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 24rpx;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.learner-error {
+  display: block;
+  color: var(--color-danger, #dc2626);
+  font-size: 26rpx;
+}
+
+.learner-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.learner-input {
+  min-width: 0;
+  height: 72rpx;
+  padding: 0 28rpx;
+  border-radius: 999rpx;
+  background: var(--color-bg-surface, #fff);
+  font-size: 26rpx;
+  line-height: 72rpx;
+  box-shadow: 0 4rpx 12rpx rgb(15 23 42 / 8%);
+}
+
+/* 弹性宽度只在横向工具条内生效：纵向父容器会把 flex-basis 解释成高度，撑坏输入框。 */
+.learner-toolbar .learner-input {
+  flex: 1 1 280rpx;
+}
+
+.learner-button {
+  margin: 0;
+  padding: 0 32rpx;
+  border: 0;
+  border-radius: 999rpx;
+  background: var(--color-bg-surface, #fff);
+  color: var(--color-text-regular, #374151);
+  font-size: 26rpx;
+  line-height: 68rpx;
+  box-shadow: 0 4rpx 12rpx rgb(15 23 42 / 8%);
+}
+
+.learner-button::after {
+  border: 0;
+}
+
+.learner-button--primary {
+  background: linear-gradient(135deg, #2563eb 0%, #4f8bff 100%);
+  color: #fff;
+  box-shadow: 0 8rpx 20rpx rgb(37 99 235 / 24%);
+}
+
+.learner-button[disabled] {
+  opacity: 0.5;
+}
+
+.learner-state {
+  display: flex;
+  padding: 64rpx 32rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24rpx;
+  background: var(--color-bg-surface, #fff);
+  color: var(--color-text-secondary, #64748b);
+  font-size: 26rpx;
+  box-shadow: 0 8rpx 24rpx rgb(38 39 45 / 6%);
+}
+
+.learner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16rpx;
+}
+
+/* 操作多于两个时按主次分行：左侧文字型次级操作，右侧唯一主按钮，避免实心按钮成堆。 */
+.learner-actions--split {
+  padding-top: 24rpx;
+  justify-content: space-between;
+  border-top: 1rpx solid var(--color-border, #e5e7eb);
+}
+
+.learner-actions__group {
+  display: flex;
+  align-items: center;
+  gap: 32rpx;
+}
+
+.learner-link {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary, #2563eb);
+  font-size: 26rpx;
+  line-height: 1.6;
+}
+
+.learner-link::after {
+  border: 0;
+}
+
+.learner-link--danger {
+  color: var(--color-danger, #dc2626);
+}
+
+.learner-link[disabled] {
+  color: var(--color-text-secondary, #64748b);
+  opacity: 0.55;
+}
+
+/**
+ * 页头内嵌操作行：跨页入口与页面级刷新收进 hero 底部，成为页头的一部分。
+ * 白底实心胶囊裸挂在页头与内容之间会同时丢掉「页头」和「卡片」两个从属关系，
+ * 视觉上像一排孤立按钮；这里改成半透明白底 + 与页头同色的细分隔线。
+ * 用法：<view class="learner-hero">…<view class="hero-actions">
+ *   <view class="hero-action">入口 ›</view><text class="hero-action hero-action--static">共 5 条</text></view></view>
+ */
+.hero-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  margin-top: 28rpx;
+  padding-top: 24rpx;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  border-top: 1rpx solid rgb(255 255 255 / 24%);
+}
+
+/* 页头内操作胶囊：与页头同底的浅色块，不再用白底实心按钮。 */
+.hero-action {
+  display: flex;
+  padding: 0 26rpx;
+  align-items: center;
+  gap: 6rpx;
+  border-radius: 999rpx;
+  background: rgb(255 255 255 / 20%);
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 500;
+  line-height: 62rpx;
+}
+
+/* 只读计数/说明：同色文字不占底色，避免与可点入口抢注意力。 */
+.hero-action--static {
+  padding: 0;
+  background: transparent;
+  color: rgb(255 255 255 / 82%);
+  font-weight: 400;
+}
+
+/**
+ * 日期区间选择控件：开始与结束日期合成一个整体控件。
+ * 两个孤立输入框各占一行时，边界与从属关系都读不出来，这里包成一条胶囊，
+ * 内部分成左右两半，各自由原生日期选择器唤起。
+ * 用法：<view class="learner-daterange"><picker …><view class="learner-daterange__value">…</view></picker>
+ *   <text class="learner-daterange__sep">~</text><picker …>…</picker></view>
+ */
+.learner-daterange {
+  display: flex;
+  min-width: 0;
+  height: 72rpx;
+  padding: 0 24rpx;
+  align-items: center;
+  gap: 10rpx;
+  border-radius: 999rpx;
+  background: var(--color-bg-surface, #fff);
+  box-shadow: 0 4rpx 12rpx rgb(15 23 42 / 8%);
+}
+
+/* 左右两半等分整条宽度，点哪半边就改哪一端。 */
+.learner-daterange__picker {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 在横向工具条内整行占位；不给 flex 会被收缩成一条窄条（实测仅 149px）。 */
+.learner-toolbar .learner-daterange {
+  flex: 1 1 280rpx;
+}
+
+.learner-daterange__value {
+  overflow: hidden;
+  color: var(--color-text-regular, #374151);
+  font-size: 25rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.learner-daterange__value--empty {
+  color: var(--color-text-secondary, #64748b);
+}
+
+.learner-daterange__sep {
+  flex: none;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 24rpx;
+}
+
+/* 已选日期时才出现的清空入口，平时不占据操作行位置。 */
+.learner-daterange__clear {
+  flex: none;
+  padding-left: 16rpx;
+  border-left: 1rpx solid var(--color-border, #e5e7eb);
+  color: var(--color-primary, #2563eb);
+  font-size: 24rpx;
+}
+

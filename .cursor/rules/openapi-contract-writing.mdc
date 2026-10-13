@@ -1,0 +1,35 @@
+---
+description: OpenAPI 契约编写规范；写或改对外 API / docs/api 时必须遵循
+globs: docs/api/**/*.openapi.json,backend/**/controller/**/*.java,backend/**/dto/**/*.java,backend/**/vo/**/*.java
+alwaysApply: false
+---
+
+# OpenAPI 契约编写规则
+
+完整规范：`docs/architecture/openapi-contract-writing-guide.md`  
+样板：`docs/api/asset.openapi.json`、`docs/api/org.openapi.json`
+
+## 四条铁律（缺一不可）
+
+1. **按 Controller 分类**：根级 `tags` 与 operation.`tags` 必须用 Java Controller 类名（如 `OrgMemberController`），每个 tag 有中文 description。禁止用业务名平铺、省略 tags、多 Controller 混挂。
+2. **每个接口有注释**：必须有中文 `summary` + `description`（含权限、规则、主要错误码）。
+3. **每个字段有注释**：每个 schema property、每个 parameter 必须有中文 `description`。
+4. **每个接口有 example**：有 body 必须有 request example；成功响应必须有 `code/message/data` example；每个参数必须有 example。
+
+交付自检口令：`分类 → 接口注释 → 字段注释 → example`。
+
+## 必须
+
+1. 新增/修改/删除对外 API、字段、权限码或错误码时，同一次交付同步更新对应 `docs/api/*.openapi.json`。
+2. 先在根级 `tags` 登记 Controller，再写该 Controller 下 paths；路径以 `/api` 开头；写 `x-permission`、`security`。
+3. 分页参数用 `pageNum`、`pageSize`、`query.*`；分页 data 用 `list` + `total`。
+4. 错误码与 `BusinessException` 对齐，写入 description 或域错误码 schema。
+
+## 禁止
+
+- 把接口写成无 Controller 分组的平铺清单。
+- 只改代码不改契约，或只改 schema 不更新 path example。
+- 无字段注释、无接口注释、无 example 的裸契约。
+- 用 Markdown 平行接口文档替代 OpenAPI。
+
+交付前按指南第 8 节**按 Controller 逐个**对照 DTO/VO 自检。

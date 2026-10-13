@@ -1,0 +1,1501 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "统一人员选择 API 契约",
+    "version": "1.0.0",
+    "description": "提供当前机构候选人员、手工特征、只读培训事实及固定条件用户组；部门、岗位、标签等同字段取并集、不同字段取交集。任务下发当次展开，不动态修改已有名单。"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "sts-service-admin context path"
+    }
+  ],
+  "tags": [
+    {
+      "name": "PersonPickerController",
+      "description": "统一人员选择候选人查询接口。"
+    },
+    {
+      "name": "PersonClassificationController",
+      "description": "人员特征、条件分类与用户组管理"
+    }
+  ],
+  "paths": {
+    "/api/common/person-picker": {
+      "get": {
+        "summary": "分页查询当前机构候选人员",
+        "description": "权限：`common:person:list`。只返回当前机构启用用户；部门条件包含全部下级部门。 支持岗位及用户组成员筛选，与部门、姓名条件取交集。无有效成员时明确提示4111/4120。 人员选择错误码：4111（岗位/人员选择无效或无启用成员）、4120（用户组不存在、停用、跨租户或当前无成员）。",
+        "tags": [
+          "PersonPickerController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "common:person:list",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "required": false,
+            "description": "页码，从 1 开始。",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "description": "每页数量。",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "example": 10
+            }
+          },
+          {
+            "name": "query.keyword",
+            "in": "query",
+            "required": false,
+            "description": "按工号、姓名或手机号模糊查询。",
+            "schema": {
+              "type": "string",
+              "example": "张三"
+            }
+          },
+          {
+            "name": "query.deptId",
+            "in": "query",
+            "required": false,
+            "description": "部门 ID，包含下级部门。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 10
+            }
+          },
+          {
+            "name": "query.positionId",
+            "in": "query",
+            "description": "按当前有效岗位成员筛选",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "query.groupId",
+            "in": "query",
+            "description": "按条件组当前成员筛选；空组、停用或跨租户组明确报错4120",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPersonPickerPage"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "list": [
+                      {
+                        "userId": 8,
+                        "userCode": "E008",
+                        "userName": "张三",
+                        "organizationId": 1,
+                        "deptId": 10,
+                        "deptName": "生产部",
+                        "memberType": "INTERNAL",
+                        "jobTitle": "安全员",
+                        "status": 1
+                      }
+                    ],
+                    "total": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResult"
+                },
+                "example": {
+                  "code": 1001,
+                  "message": "参数错误",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResult"
+                },
+                "example": {
+                  "code": 1002,
+                  "message": "未登录",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResult"
+                },
+                "example": {
+                  "code": 1003,
+                  "message": "无权限",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/person/profiles/{userId}": {
+      "get": {
+        "tags": [
+          "PersonClassificationController"
+        ],
+        "summary": "查询人员手工特征",
+        "description": "查询人员手工特征。仅操作当前租户，拒绝无效对象；错误码4120参数/对象无效、4121名称重复、4122版本冲突。",
+        "x-permission": "person:profile:list",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务状态码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "中文信息"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PersonProfileVO"
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "成功",
+                  "data": {
+                    "userId": 1,
+                    "version": 0
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数/对象无效",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 4120,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本或名称冲突",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 4122,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1001,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1003,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "当前租户对象ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "PersonClassificationController"
+        ],
+        "summary": "保存人员手工特征",
+        "description": "保存人员手工特征。仅操作当前租户，拒绝无效对象；错误码4120参数/对象无效、4121名称重复、4122版本冲突。",
+        "x-permission": "person:profile:edit",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务状态码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "中文信息"
+                    },
+                    "data": {
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "成功",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数/对象无效",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 4120,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本或名称冲突",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 4122,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1001,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1003,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonProfileRequest"
+              },
+              "example": {
+                "version": 0,
+                "occupation": "电工"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "当前租户对象ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/person/profiles/{userId}/training-facts": {
+      "get": {
+        "tags": [
+          "PersonClassificationController"
+        ],
+        "summary": "查询人员只读培训事实",
+        "description": "查询人员只读培训事实。仅操作当前租户，拒绝无效对象；错误码4120参数/对象无效、4121名称重复、4122版本冲突。培训结果和学时与现有培训统计同源；查询不调用同步，不写数据库。",
+        "x-permission": "person:profile:list",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务状态码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "中文信息"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PersonTrainingFactVO"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "成功",
+                  "data": []
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数/对象无效",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 4120,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本或名称冲突",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 4122,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1001,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1003,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "当前租户对象ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/person/groups/preview": {
+      "post": {
+        "tags": [
+          "PersonClassificationController"
+        ],
+        "summary": "预览当前分类人员名单",
+        "description": "预览当前分类人员名单。仅操作当前租户，拒绝无效对象；错误码4120参数/对象无效、4121名称重复、4122版本冲突。",
+        "x-permission": "person:group:list",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务状态码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "中文信息"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PersonPickerItem"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "成功",
+                  "data": []
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数/对象无效",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 4120,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本或名称冲突",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 4122,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1001,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1003,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonClassificationCondition"
+              },
+              "example": {
+                "occupation": "电工",
+                "minAge": 18
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/person/groups": {
+      "get": {
+        "tags": [
+          "PersonClassificationController"
+        ],
+        "summary": "查询当前机构用户组",
+        "description": "查询当前机构用户组。仅操作当前租户，拒绝无效对象；错误码4120参数/对象无效、4121名称重复、4122版本冲突。",
+        "x-permission": "person:group:list",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务状态码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "中文信息"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PersonGroupVO"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "成功",
+                  "data": []
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数/对象无效",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 4120,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本或名称冲突",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 4122,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1001,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1003,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PersonClassificationController"
+        ],
+        "summary": "创建条件用户组",
+        "description": "创建条件用户组。仅操作当前租户，拒绝无效对象；错误码4120参数/对象无效、4121名称重复、4122版本冲突。",
+        "x-permission": "person:group:edit",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务状态码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "中文信息"
+                    },
+                    "data": {
+                      "type": "integer",
+                      "format": "int64"
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "成功",
+                  "data": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数/对象无效",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 4120,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本或名称冲突",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 4122,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1001,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1003,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonGroupRequest"
+              },
+              "example": {
+                "groupName": "新入园电工",
+                "status": 1,
+                "conditions": {
+                  "occupation": "电工"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/person/groups/{groupId}": {
+      "put": {
+        "tags": [
+          "PersonClassificationController"
+        ],
+        "summary": "修改条件用户组",
+        "description": "修改条件用户组。仅操作当前租户，拒绝无效对象；错误码4120参数/对象无效、4121名称重复、4122版本冲突。",
+        "x-permission": "person:group:edit",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务状态码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "中文信息"
+                    },
+                    "data": {
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "成功",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数/对象无效",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 4120,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本或名称冲突",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 4122,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1001,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1003,
+                  "message": "请求被拒绝",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonGroupRequest"
+              },
+              "example": {
+                "groupName": "新入园电工",
+                "status": 1,
+                "conditions": {
+                  "occupation": "电工"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "description": "当前租户对象ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "PersonPickerItem": {
+        "type": "object",
+        "description": "候选人员。",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "用户 ID。",
+            "example": 8
+          },
+          "userCode": {
+            "type": "string",
+            "description": "当前机构内工号。",
+            "example": "E008"
+          },
+          "userName": {
+            "type": "string",
+            "description": "用户姓名。",
+            "example": "张三"
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "所属机构 ID。",
+            "example": 1
+          },
+          "deptId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "所属部门 ID。",
+            "example": 10
+          },
+          "deptName": {
+            "type": "string",
+            "nullable": true,
+            "description": "所属部门名称。",
+            "example": "生产部"
+          },
+          "memberType": {
+            "type": "string",
+            "description": "成员类型。",
+            "enum": [
+              "INTERNAL",
+              "EXTERNAL",
+              "REGULATOR"
+            ],
+            "example": "INTERNAL"
+          },
+          "jobTitle": {
+            "type": "string",
+            "nullable": true,
+            "description": "职务。",
+            "example": "安全员"
+          },
+          "status": {
+            "type": "integer",
+            "description": "账号状态；本接口固定返回启用用户。",
+            "enum": [
+              1
+            ],
+            "example": 1
+          }
+        }
+      },
+      "PersonPickerPage": {
+        "type": "object",
+        "description": "候选人员分页结果。",
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页人员。",
+            "items": {
+              "$ref": "#/components/schemas/PersonPickerItem"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "总数量。",
+            "example": 1
+          }
+        }
+      },
+      "ResultPersonPickerPage": {
+        "type": "object",
+        "description": "统一成功响应。",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务码，0 表示成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息。",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PersonPickerPage",
+            "description": "分页数据。"
+          }
+        }
+      },
+      "ErrorResult": {
+        "type": "object",
+        "description": "统一错误响应。",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务错误码。",
+            "example": 1001
+          },
+          "message": {
+            "type": "string",
+            "description": "错误消息。",
+            "example": "参数错误"
+          },
+          "data": {
+            "nullable": true,
+            "description": "错误时通常为空。",
+            "example": null
+          }
+        }
+      },
+      "PersonProfileRequest": {
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "birthDate": {
+            "type": "string",
+            "description": "出生日期，年龄按服务端当前日期计算",
+            "format": "date",
+            "nullable": true
+          },
+          "gender": {
+            "type": "string",
+            "description": "性别：男、女、其他",
+            "enum": [
+              "MALE",
+              "FEMALE",
+              "OTHER"
+            ],
+            "nullable": true
+          },
+          "occupation": {
+            "type": "string",
+            "description": "职业，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "education": {
+            "type": "string",
+            "description": "学历，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "major": {
+            "type": "string",
+            "description": "专业，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "workExperience": {
+            "type": "string",
+            "description": "从业经历，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "specialty": {
+            "type": "string",
+            "description": "专长，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "qualification": {
+            "type": "string",
+            "description": "职业资格，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "rewardPenaltyNote": {
+            "type": "string",
+            "description": "人工录入的人员奖惩说明，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "workContent": {
+            "type": "string",
+            "description": "工作内容，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "workSkills": {
+            "type": "string",
+            "description": "工作技能，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本，首次保存为0",
+            "minimum": 0
+          }
+        }
+      },
+      "PersonProfileVO": {
+        "type": "object",
+        "properties": {
+          "birthDate": {
+            "type": "string",
+            "description": "出生日期，年龄按服务端当前日期计算",
+            "format": "date",
+            "nullable": true
+          },
+          "gender": {
+            "type": "string",
+            "description": "性别：男、女、其他",
+            "enum": [
+              "MALE",
+              "FEMALE",
+              "OTHER"
+            ],
+            "nullable": true
+          },
+          "occupation": {
+            "type": "string",
+            "description": "职业，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "education": {
+            "type": "string",
+            "description": "学历，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "major": {
+            "type": "string",
+            "description": "专业，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "workExperience": {
+            "type": "string",
+            "description": "从业经历，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "specialty": {
+            "type": "string",
+            "description": "专长，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "qualification": {
+            "type": "string",
+            "description": "职业资格，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "rewardPenaltyNote": {
+            "type": "string",
+            "description": "人工录入的人员奖惩说明，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "workContent": {
+            "type": "string",
+            "description": "工作内容，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "workSkills": {
+            "type": "string",
+            "description": "工作技能，可清空",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本，首次保存为0",
+            "minimum": 0
+          },
+          "userId": {
+            "type": "integer",
+            "description": "人员ID",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "userId",
+          "version"
+        ]
+      },
+      "PersonClassificationCondition": {
+        "type": "object",
+        "description": "不同条件交集；空条件代表当前租户全部启用人员。不会修改已下发名单。",
+        "properties": {
+          "deptIds": {
+            "type": "array",
+            "description": "部门（包含下级），同字段并集",
+            "items": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "maxItems": 100
+          },
+          "positionIds": {
+            "type": "array",
+            "description": "岗位，同字段并集",
+            "items": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "maxItems": 100
+          },
+          "tagIds": {
+            "type": "array",
+            "description": "标签，同字段并集",
+            "items": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "maxItems": 100
+          },
+          "genders": {
+            "type": "array",
+            "description": "性别，同字段并集",
+            "items": {
+              "type": "string",
+              "maxLength": 1000
+            },
+            "maxItems": 100
+          },
+          "educations": {
+            "type": "array",
+            "description": "学历，同字段并集",
+            "items": {
+              "type": "string",
+              "maxLength": 1000
+            },
+            "maxItems": 100
+          },
+          "minAge": {
+            "type": "integer",
+            "description": "年龄范围，含边界；缺失出生日期不匹配",
+            "minimum": 0,
+            "maximum": 150
+          },
+          "maxAge": {
+            "type": "integer",
+            "description": "年龄范围，含边界；缺失出生日期不匹配",
+            "minimum": 0,
+            "maximum": 150
+          },
+          "keyword": {
+            "type": "string",
+            "description": "人员关键词（姓名/工号）",
+            "maxLength": 1000
+          },
+          "occupation": {
+            "type": "string",
+            "description": "职业，可清空关键词",
+            "maxLength": 1000
+          },
+          "major": {
+            "type": "string",
+            "description": "专业，可清空关键词",
+            "maxLength": 1000
+          },
+          "workExperience": {
+            "type": "string",
+            "description": "从业经历，可清空关键词",
+            "maxLength": 1000
+          },
+          "specialty": {
+            "type": "string",
+            "description": "专长，可清空关键词",
+            "maxLength": 1000
+          },
+          "qualification": {
+            "type": "string",
+            "description": "职业资格，可清空关键词",
+            "maxLength": 1000
+          },
+          "rewardPenaltyNote": {
+            "type": "string",
+            "description": "人工录入的人员奖惩说明，可清空关键词",
+            "maxLength": 1000
+          },
+          "workContent": {
+            "type": "string",
+            "description": "工作内容，可清空关键词",
+            "maxLength": 1000
+          },
+          "workSkills": {
+            "type": "string",
+            "description": "工作技能，可清空关键词",
+            "maxLength": 1000
+          },
+          "trainingPlanId": {
+            "type": "integer",
+            "description": "按参加的培训计划筛选",
+            "format": "int64",
+            "minimum": 1
+          },
+          "resultStatuses": {
+            "type": "array",
+            "description": "培训整体结果：PASSED合格、FAILED未通过、INCOMPLETE未完成；须同时指定计划，由现有只读结果服务实时推导，已结束读取冻结结果。",
+            "items": {
+              "type": "string",
+              "enum": [
+                "INCOMPLETE",
+                "PASSED",
+                "FAILED"
+              ]
+            },
+            "maxItems": 3
+          }
+        }
+      },
+      "PersonGroupRequest": {
+        "type": "object",
+        "required": [
+          "groupName",
+          "status",
+          "conditions"
+        ],
+        "properties": {
+          "groupName": {
+            "type": "string",
+            "description": "用户组名称",
+            "maxLength": 100
+          },
+          "status": {
+            "type": "integer",
+            "description": "状态：0停用、1启用",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/PersonClassificationCondition",
+            "description": "经过校验的固定人员分类条件，不同字段取交集。"
+          },
+          "version": {
+            "type": "integer",
+            "description": "更新时必填版本",
+            "minimum": 0
+          }
+        }
+      },
+      "PersonGroupVO": {
+        "type": "object",
+        "properties": {
+          "groupName": {
+            "type": "string",
+            "description": "用户组名称",
+            "maxLength": 100
+          },
+          "status": {
+            "type": "integer",
+            "description": "状态：0停用、1启用",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/PersonClassificationCondition",
+            "description": "经过校验的固定人员分类条件，不同字段取交集。"
+          },
+          "version": {
+            "type": "integer",
+            "description": "更新时必填版本",
+            "minimum": 0
+          },
+          "groupId": {
+            "type": "integer",
+            "description": "用户组ID",
+            "format": "int64"
+          }
+        }
+      },
+      "PersonTrainingFactVO": {
+        "type": "object",
+        "properties": {
+          "trainingPlanId": {
+            "type": "integer",
+            "description": "培训计划ID",
+            "format": "int64"
+          },
+          "planName": {
+            "type": "string",
+            "description": "培训计划名称"
+          },
+          "resultStatus": {
+            "type": "string",
+            "description": "培训结果状态"
+          },
+          "completedTime": {
+            "type": "string",
+            "description": "完成时间",
+            "format": "date-time",
+            "nullable": true
+          },
+          "onlineHours": {
+            "type": "number",
+            "description": "已获得线上学时"
+          },
+          "offlineHours": {
+            "type": "number",
+            "description": "已获得线下学时"
+          },
+          "rewardPenaltyTitles": {
+            "type": "string",
+            "description": "已登记培训奖惩标题，仅展示有效记录",
+            "nullable": true
+          }
+        }
+      }
+    }
+  }
+}

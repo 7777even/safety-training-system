@@ -1,0 +1,1685 @@
+[
+  {
+    "menuName": "门户",
+    "menuType": "D",
+    "path": "/portal",
+    "component": "Layout",
+    "permission": "",
+    "icon": "HomeFilled",
+    "sortOrder": 1,
+    "children": [
+      {
+        "menuName": "首页",
+        "menuType": "C",
+        "path": "home",
+        "component": "portal/home/index",
+        "permission": "",
+        "icon": "",
+        "sortOrder": 1
+      },
+      {
+        "menuName": "学习中心",
+        "menuType": "C",
+        "path": "class",
+        "component": "portal/class/index",
+        "permission": "",
+        "icon": "",
+        "sortOrder": 2,
+        "children": [
+          {
+            "menuName": "素材预览",
+            "menuType": "F",
+            "permission": "asset:asset:preview",
+            "sortOrder": 0
+          },
+          {
+            "menuName": "素材列表",
+            "menuType": "F",
+            "permission": "asset:asset:list",
+            "sortOrder": 0
+          }
+        ]
+      },
+      {
+        "menuName": "考试中心",
+        "menuType": "C",
+        "path": "exams",
+        "component": "portal/exams/index",
+        "permission": "exam:learner:task:list",
+        "icon": "",
+        "sortOrder": 3,
+        "children": [
+          {
+            "menuName": "开考",
+            "menuType": "F",
+            "permission": "exam:attempt:start",
+            "sortOrder": 0
+          },
+          {
+            "menuName": "学员作答详情",
+            "menuType": "F",
+            "permission": "exam:learner:attempt:view",
+            "sortOrder": 0
+          },
+          {
+            "menuName": "学员作答",
+            "menuType": "F",
+            "permission": "exam:attempt:answer",
+            "sortOrder": 0
+          },
+          {
+            "menuName": "学员交卷",
+            "menuType": "F",
+            "permission": "exam:attempt:submit",
+            "sortOrder": 0
+          },
+          {
+            "menuName": "考试信息",
+            "menuType": "F",
+            "permission": "exam:exam:list",
+            "sortOrder": 0
+          }
+        ]
+      },
+      {
+        "menuName": "培训中心",
+        "menuType": "C",
+        "path": "training",
+        "component": "portal/training/index",
+        "permission": "",
+        "icon": "",
+        "sortOrder": 4,
+        "children": [
+          {
+            "menuName": "培训列表",
+            "menuType": "F",
+            "permission": "training:learner:task",
+            "sortOrder": 0
+          }
+        ]
+      },
+      {
+        "menuName": "我的证书",
+        "menuType": "C",
+        "path": "certificates",
+        "component": "portal/certificates/index",
+        "permission": "training:learner:task",
+        "icon": "",
+        "sortOrder": 5
+      },
+      {
+        "menuName": "教学辅助",
+        "menuType": "C",
+        "path": "teaching-aids",
+        "component": "portal/teaching-aids/index",
+        "permission": "",
+        "icon": "",
+        "sortOrder": 6
+      }
+    ]
+  },
+  {
+    "menuName": "模块首页概览",
+    "menuType": "D",
+    "path": "/admin/overview",
+    "component": "overview/index",
+    "permission": "",
+    "icon": "Odometer",
+    "sortOrder": 1
+  },
+  {
+    "menuName": "应用中心",
+    "menuType": "D",
+    "path": "/admin/business-center",
+    "component": "Layout",
+    "permission": "",
+    "icon": "Grid",
+    "sortOrder": 2,
+    "children": [
+      {
+        "menuName": "素材库",
+        "menuType": "C",
+        "path": "resource-library",
+        "component": "business-center/resource-library/index",
+        "permission": "asset:asset:list",
+        "icon": "",
+        "sortOrder": 1,
+        "children": [
+          {
+            "menuName": "素材查询",
+            "menuType": "F",
+            "permission": "asset:asset:list",
+            "sortOrder": 1
+          },
+          {
+            "menuName": "素材新增",
+            "menuType": "F",
+            "permission": "asset:asset:add",
+            "sortOrder": 2
+          },
+          {
+            "menuName": "素材编辑",
+            "menuType": "F",
+            "permission": "asset:asset:edit",
+            "sortOrder": 3
+          },
+          {
+            "menuName": "素材删除",
+            "menuType": "F",
+            "permission": "asset:asset:delete",
+            "sortOrder": 4
+          },
+          {
+            "menuName": "转码任务查询",
+            "menuType": "F",
+            "permission": "asset:job:list",
+            "sortOrder": 5
+          }
+        ]
+      },
+      {
+        "menuName": "课程管理",
+        "menuType": "M",
+        "path": "course",
+        "component": "Layout",
+        "permission": "",
+        "icon": "Reading",
+        "sortOrder": 2,
+        "children": [
+          {
+            "menuName": "课程分类",
+            "menuType": "C",
+            "path": "classify",
+            "component": "business-center/course/classify/index",
+            "permission": "course:category:list",
+            "icon": "List",
+            "sortOrder": 1,
+            "children": [
+              {
+                "menuName": "课程分类查询",
+                "menuType": "F",
+                "permission": "course:category:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "课程分类新增",
+                "menuType": "F",
+                "permission": "course:category:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "课程分类编辑",
+                "menuType": "F",
+                "permission": "course:category:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "课程分类删除",
+                "menuType": "F",
+                "permission": "course:category:delete",
+                "sortOrder": 4
+              }
+            ]
+          },
+          {
+            "menuName": "课程中心",
+            "menuType": "C",
+            "path": "center",
+            "component": "business-center/course/center/index",
+            "permission": "course:course:list",
+            "icon": "Tickets",
+            "sortOrder": 3,
+            "children": [
+              {
+                "menuName": "课程查询",
+                "menuType": "F",
+                "permission": "course:course:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "课程新增",
+                "menuType": "F",
+                "permission": "course:course:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "课程编辑",
+                "menuType": "F",
+                "permission": "course:course:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "课程删除",
+                "menuType": "F",
+                "permission": "course:course:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "章节查询",
+                "menuType": "F",
+                "permission": "course:chapter:list",
+                "sortOrder": 5
+              },
+              {
+                "menuName": "章节新增",
+                "menuType": "F",
+                "permission": "course:chapter:add",
+                "sortOrder": 6
+              },
+              {
+                "menuName": "章节编辑",
+                "menuType": "F",
+                "permission": "course:chapter:edit",
+                "sortOrder": 7
+              },
+              {
+                "menuName": "章节删除",
+                "menuType": "F",
+                "permission": "course:chapter:delete",
+                "sortOrder": 8
+              },
+              {
+                "menuName": "内容项查询",
+                "menuType": "F",
+                "permission": "course:item:list",
+                "sortOrder": 9
+              },
+              {
+                "menuName": "内容项新增",
+                "menuType": "F",
+                "permission": "course:item:add",
+                "sortOrder": 10
+              },
+              {
+                "menuName": "内容项编辑",
+                "menuType": "F",
+                "permission": "course:item:edit",
+                "sortOrder": 11
+              },
+              {
+                "menuName": "内容项删除",
+                "menuType": "F",
+                "permission": "course:item:delete",
+                "sortOrder": 12
+              },
+              {
+                "menuName": "课程发布",
+                "menuType": "F",
+                "permission": "course:course:publish",
+                "sortOrder": 13
+              },
+              {
+                "menuName": "开课查询",
+                "menuType": "F",
+                "permission": "course:offering:list",
+                "sortOrder": 99
+              },
+              {
+                "menuName": "开课新增",
+                "menuType": "F",
+                "permission": "course:offering:add",
+                "sortOrder": 99
+              },
+              {
+                "menuName": "开课编辑",
+                "menuType": "F",
+                "permission": "course:offering:edit",
+                "sortOrder": 99
+              },
+              {
+                "menuName": "开课删除",
+                "menuType": "F",
+                "permission": "course:offering:delete",
+                "sortOrder": 99
+              },
+              {
+                "menuName": "开课发布",
+                "menuType": "F",
+                "permission": "course:offering:publish",
+                "sortOrder": 99
+              },
+              {
+                "menuName": "报名查询",
+                "menuType": "F",
+                "permission": "course:enrollment:list",
+                "sortOrder": 99
+              },
+              {
+                "menuName": "报名指派",
+                "menuType": "F",
+                "permission": "course:enrollment:assign",
+                "sortOrder": 99
+              },
+              {
+                "menuName": "报名移除",
+                "menuType": "F",
+                "permission": "course:enrollment:remove",
+                "sortOrder": 99
+              },
+              {
+                "menuName": "学习详情",
+                "menuType": "F",
+                "permission": "course:learning:view",
+                "sortOrder": 99
+              },
+              {
+                "menuName": "人员选择",
+                "menuType": "F",
+                "permission": "common:person:list",
+                "sortOrder": 99
+              },
+              {
+                "menuName": "部门查询",
+                "menuType": "F",
+                "permission": "sys:dept:list",
+                "sortOrder": 99
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "menuName": "考试管理",
+        "menuType": "M",
+        "path": "exams",
+        "component": "Layout",
+        "permission": "",
+        "icon": "Collection",
+        "sortOrder": 3,
+        "children": [
+          {
+            "menuName": "题库中心",
+            "menuType": "C",
+            "path": "question",
+            "component": "business-center/exams/question/index",
+            "permission": "question:question:list",
+            "icon": "Document",
+            "sortOrder": 1,
+            "children": [
+              {
+                "menuName": "查询",
+                "menuType": "F",
+                "permission": "question:knowledge:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "查询",
+                "menuType": "F",
+                "permission": "question:bank:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "查询",
+                "menuType": "F",
+                "permission": "question:question:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "新增",
+                "menuType": "F",
+                "permission": "question:knowledge:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "新增",
+                "menuType": "F",
+                "permission": "question:bank:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "新增",
+                "menuType": "F",
+                "permission": "question:question:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "编辑",
+                "menuType": "F",
+                "permission": "question:knowledge:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "编辑",
+                "menuType": "F",
+                "permission": "question:bank:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "编辑",
+                "menuType": "F",
+                "permission": "question:question:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "删除",
+                "menuType": "F",
+                "permission": "question:knowledge:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "删除",
+                "menuType": "F",
+                "permission": "question:bank:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "删除",
+                "menuType": "F",
+                "permission": "question:question:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "发布",
+                "menuType": "F",
+                "permission": "question:question:publish",
+                "sortOrder": 5
+              },
+              {
+                "menuName": "导入",
+                "menuType": "F",
+                "permission": "question:import",
+                "sortOrder": 20
+              },
+              {
+                "menuName": "错题状态",
+                "menuType": "F",
+                "permission": "question:user-state:edit",
+                "sortOrder": 20
+              }
+            ]
+          },
+          {
+            "menuName": "试卷管理",
+            "menuType": "C",
+            "path": "paper",
+            "component": "business-center/exams/paper/index",
+            "permission": "paper:paper:list",
+            "icon": "Reading",
+            "sortOrder": 2,
+            "children": [
+              {
+                "menuName": "查询",
+                "menuType": "F",
+                "permission": "paper:paper:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "新增",
+                "menuType": "F",
+                "permission": "paper:paper:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "编辑",
+                "menuType": "F",
+                "permission": "paper:paper:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "删除",
+                "menuType": "F",
+                "permission": "paper:paper:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "发布试卷",
+                "menuType": "F",
+                "permission": "paper:publish",
+                "sortOrder": 20
+              }
+            ]
+          },
+          {
+            "menuName": "考试管理",
+            "menuType": "C",
+            "path": "exam",
+            "component": "business-center/exams/exam/index",
+            "permission": "exam:exam:list",
+            "icon": "Tickets",
+            "sortOrder": 3,
+            "children": [
+              {
+                "menuName": "查询",
+                "menuType": "F",
+                "permission": "exam:exam:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "新增",
+                "menuType": "F",
+                "permission": "exam:exam:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "编辑",
+                "menuType": "F",
+                "permission": "exam:exam:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "删除",
+                "menuType": "F",
+                "permission": "exam:exam:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "发布考试",
+                "menuType": "F",
+                "permission": "exam:publish",
+                "sortOrder": 20
+              },
+              {
+                "menuName": "开考",
+                "menuType": "F",
+                "permission": "exam:attempt:start",
+                "sortOrder": 20
+              },
+              {
+                "menuName": "作答查询",
+                "menuType": "F",
+                "permission": "exam:attempt:list",
+                "sortOrder": 20
+              },
+              {
+                "menuName": "作答",
+                "menuType": "F",
+                "permission": "exam:attempt:answer",
+                "sortOrder": 20
+              },
+              {
+                "menuName": "交卷",
+                "menuType": "F",
+                "permission": "exam:attempt:submit",
+                "sortOrder": 20
+              },
+              {
+                "menuName": "批阅",
+                "menuType": "F",
+                "permission": "exam:review",
+                "sortOrder": 20
+              },
+              {
+                "menuName": "成绩发布",
+                "menuType": "F",
+                "permission": "exam:score:publish",
+                "sortOrder": 20
+              },
+              {
+                "menuName": "学员考试任务",
+                "menuType": "F",
+                "permission": "exam:learner:task:list",
+                "sortOrder": 20
+              },
+              {
+                "menuName": "学员作答详情",
+                "menuType": "F",
+                "permission": "exam:learner:attempt:view",
+                "sortOrder": 20
+              }
+            ]
+          },
+          {
+            "menuName": "成绩批阅",
+            "menuType": "C",
+            "path": "review",
+            "component": "business-center/exams/exam/review/index",
+            "permission": "",
+            "icon": "Management",
+            "sortOrder": 4
+          },
+          {
+            "menuName": "成绩管理",
+            "menuType": "C",
+            "path": "results",
+            "component": "business-center/exams/exam/results/index",
+            "permission": "",
+            "icon": "Management",
+            "sortOrder": 5
+          }
+        ]
+      },
+      {
+        "menuName": "培训管理",
+        "menuType": "M",
+        "path": "training",
+        "component": "Layout",
+        "permission": "",
+        "icon": "Management",
+        "sortOrder": 4,
+        "children": [
+          {
+            "menuName": "教学任务",
+            "menuType": "C",
+            "path": "teacher-tasks",
+            "component": "business-center/training/teacher-tasks/index",
+            "permission": "training:teacher:task",
+            "icon": "Menu",
+            "sortOrder": 0
+          },
+          {
+            "menuName": "培训类型",
+            "menuType": "C",
+            "path": "type",
+            "component": "business-center/training/type/index",
+            "permission": "training:type:list",
+            "icon": "Notebook",
+            "sortOrder": 1,
+            "children": [
+              {
+                "menuName": "类型查询",
+                "menuType": "F",
+                "permission": "training:type:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "类型新增",
+                "menuType": "F",
+                "permission": "training:type:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "类型修改",
+                "menuType": "F",
+                "permission": "training:type:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "类型删除",
+                "menuType": "F",
+                "permission": "training:type:delete",
+                "sortOrder": 4
+              }
+            ]
+          },
+          {
+            "menuName": "培训标准",
+            "menuType": "C",
+            "path": "standard",
+            "component": "business-center/training/standard/index",
+            "permission": "training:standard:list",
+            "icon": "Lock",
+            "sortOrder": 2,
+            "children": [
+              {
+                "menuName": "标准查询",
+                "menuType": "F",
+                "permission": "training:standard:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "标准新增",
+                "menuType": "F",
+                "permission": "training:standard:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "标准修改",
+                "menuType": "F",
+                "permission": "training:standard:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "标准删除",
+                "menuType": "F",
+                "permission": "training:standard:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "标准发布",
+                "menuType": "F",
+                "permission": "training:standard:publish",
+                "sortOrder": 5
+              }
+            ]
+          },
+          {
+            "menuName": "培训模板",
+            "menuType": "C",
+            "path": "template",
+            "component": "business-center/training/template/index",
+            "permission": "training:template:list",
+            "icon": "Management",
+            "sortOrder": 3,
+            "children": [
+              {
+                "menuName": "模板查询",
+                "menuType": "F",
+                "permission": "training:template:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "模板新增",
+                "menuType": "F",
+                "permission": "training:template:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "模板修改",
+                "menuType": "F",
+                "permission": "training:template:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "模板删除",
+                "menuType": "F",
+                "permission": "training:template:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "模板发布",
+                "menuType": "F",
+                "permission": "training:template:publish",
+                "sortOrder": 5
+              }
+            ]
+          },
+          {
+            "menuName": "评价表单",
+            "menuType": "C",
+            "path": "evaluation-form",
+            "component": "business-center/training/evaluation-form/index",
+            "permission": "evaluation:form:list",
+            "icon": "Folder",
+            "sortOrder": 4,
+            "children": [
+              {
+                "menuName": "表单查询",
+                "menuType": "F",
+                "permission": "evaluation:form:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "记录查询",
+                "menuType": "F",
+                "permission": "evaluation:record:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "表单新增",
+                "menuType": "F",
+                "permission": "evaluation:form:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "记录提交",
+                "menuType": "F",
+                "permission": "evaluation:record:submit",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "表单修改",
+                "menuType": "F",
+                "permission": "evaluation:form:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "记录新增",
+                "menuType": "F",
+                "permission": "evaluation:record:add",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "表单删除",
+                "menuType": "F",
+                "permission": "evaluation:form:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "表单发布",
+                "menuType": "F",
+                "permission": "evaluation:form:publish",
+                "sortOrder": 5
+              }
+            ]
+          },
+          {
+            "menuName": "培训计划",
+            "menuType": "C",
+            "path": "plan",
+            "component": "business-center/training/plan/index",
+            "permission": "training:plan:list",
+            "icon": "Reading",
+            "sortOrder": 5,
+            "children": [
+              {
+                "menuName": "计划查询",
+                "menuType": "F",
+                "permission": "training:plan:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "计划新增",
+                "menuType": "F",
+                "permission": "training:plan:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "计划修改",
+                "menuType": "F",
+                "permission": "training:plan:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "计划删除",
+                "menuType": "F",
+                "permission": "training:plan:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "计划发布",
+                "menuType": "F",
+                "permission": "training:plan:publish",
+                "sortOrder": 5
+              },
+              {
+                "menuName": "参训人管理",
+                "menuType": "F",
+                "permission": "training:participant:list",
+                "sortOrder": 6
+              },
+              {
+                "menuName": "参训人指派",
+                "menuType": "F",
+                "permission": "training:participant:assign",
+                "sortOrder": 7
+              },
+              {
+                "menuName": "线下成绩",
+                "menuType": "F",
+                "permission": "training:offline-score:edit",
+                "sortOrder": 10
+              },
+              {
+                "menuName": "附件管理",
+                "menuType": "F",
+                "permission": "training:attachment:list",
+                "sortOrder": 11
+              },
+              {
+                "menuName": "奖惩管理",
+                "menuType": "F",
+                "permission": "training:reward:list",
+                "sortOrder": 12
+              },
+              {
+                "menuName": "教师任务",
+                "menuType": "F",
+                "permission": "training:teacher:task",
+                "sortOrder": 13
+              },
+              {
+                "menuName": "附件新增",
+                "menuType": "F",
+                "permission": "training:attachment:add",
+                "sortOrder": 14
+              },
+              {
+                "menuName": "附件编辑",
+                "menuType": "F",
+                "permission": "training:attachment:edit",
+                "sortOrder": 15
+              },
+              {
+                "menuName": "附件删除",
+                "menuType": "F",
+                "permission": "training:attachment:delete",
+                "sortOrder": 16
+              },
+              {
+                "menuName": "学员任务",
+                "menuType": "F",
+                "permission": "training:learner:task",
+                "sortOrder": 18
+              },
+              {
+                "menuName": "线下成绩查询",
+                "menuType": "F",
+                "permission": "training:offline-score:list",
+                "sortOrder": 19
+              },
+              {
+                "menuName": "培训结果查询",
+                "menuType": "F",
+                "permission": "training:result:list",
+                "sortOrder": 20
+              },
+              {
+                "menuName": "培训结果同步",
+                "menuType": "F",
+                "permission": "training:result:synchronize",
+                "sortOrder": 21
+              },
+              {
+                "menuName": "奖惩新增",
+                "menuType": "F",
+                "permission": "training:reward:add",
+                "sortOrder": 22
+              },
+              {
+                "menuName": "奖惩编辑",
+                "menuType": "F",
+                "permission": "training:reward:edit",
+                "sortOrder": 23
+              },
+              {
+                "menuName": "奖惩删除",
+                "menuType": "F",
+                "permission": "training:reward:delete",
+                "sortOrder": 24
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "menuId": 9700,
+        "menuName": "培训成果",
+        "menuType": "M",
+        "path": "/result",
+        "component": "Layout",
+        "permission": "",
+        "icon": "Document",
+        "sortOrder": 5,
+        "children": [
+          {
+            "menuId": 9701,
+            "menuName": "问卷管理",
+            "menuType": "C",
+            "path": "survey",
+            "component": "survey/index",
+            "permission": "survey:survey:list",
+            "icon": "",
+            "sortOrder": 1,
+            "children": [
+              {
+                "menuId": 9710,
+                "menuName": "问卷查询",
+                "menuType": "F",
+                "path": "",
+                "component": "",
+                "permission": "survey:survey:list",
+                "icon": "",
+                "sortOrder": 1
+              },
+              {
+                "menuId": 9711,
+                "menuName": "问卷新增",
+                "menuType": "F",
+                "path": "",
+                "component": "",
+                "permission": "survey:survey:add",
+                "icon": "",
+                "sortOrder": 2
+              },
+              {
+                "menuId": 9712,
+                "menuName": "问卷编辑",
+                "menuType": "F",
+                "path": "",
+                "component": "",
+                "permission": "survey:survey:edit",
+                "icon": "",
+                "sortOrder": 3
+              },
+              {
+                "menuId": 9713,
+                "menuName": "问卷删除",
+                "menuType": "F",
+                "path": "",
+                "component": "",
+                "permission": "survey:survey:delete",
+                "icon": "",
+                "sortOrder": 4
+              },
+              {
+                "menuId": 9714,
+                "menuName": "投放查询",
+                "menuType": "F",
+                "path": "",
+                "component": "",
+                "permission": "survey:instance:list",
+                "icon": "",
+                "sortOrder": 5
+              },
+              {
+                "menuId": 9715,
+                "menuName": "投放新增",
+                "menuType": "F",
+                "path": "",
+                "component": "",
+                "permission": "survey:instance:add",
+                "icon": "",
+                "sortOrder": 6
+              }
+            ]
+          },
+          {
+            "menuId": 9702,
+            "menuName": "培训档案",
+            "menuType": "C",
+            "path": "archive",
+            "component": "archive/index",
+            "permission": "archive:training:list",
+            "icon": "",
+            "sortOrder": 2,
+            "children": [
+              {
+                "menuId": 9720,
+                "menuName": "档案查询",
+                "menuType": "F",
+                "path": "",
+                "component": "",
+                "permission": "archive:training:list",
+                "icon": "",
+                "sortOrder": 1
+              },
+              {
+                "menuId": 9721,
+                "menuName": "档案更新",
+                "menuType": "F",
+                "path": "",
+                "component": "",
+                "permission": "archive:training:create",
+                "icon": "",
+                "sortOrder": 2
+              }
+            ]
+          },
+          {
+            "menuId": 9703,
+            "menuName": "证书管理",
+            "menuType": "C",
+            "path": "certificate",
+            "component": "certificate/index",
+            "permission": "certificate:template:list",
+            "icon": "",
+            "sortOrder": 3,
+            "children": [
+              {
+                "menuId": 9704,
+                "menuName": "证书模板",
+                "menuType": "C",
+                "path": "templates",
+                "component": "certificate/templates/index",
+                "permission": "certificate:template:list",
+                "icon": "",
+                "sortOrder": 1,
+                "children": [
+                  {
+                    "menuId": 9730,
+                    "menuName": "模板查询",
+                    "menuType": "F",
+                    "path": "",
+                    "component": "",
+                    "permission": "certificate:template:list",
+                    "icon": "",
+                    "sortOrder": 1
+                  },
+                  {
+                    "menuId": 9731,
+                    "menuName": "模板新增",
+                    "menuType": "F",
+                    "path": "",
+                    "component": "",
+                    "permission": "certificate:template:add",
+                    "icon": "",
+                    "sortOrder": 2
+                  },
+                  {
+                    "menuId": 9732,
+                    "menuName": "模板编辑",
+                    "menuType": "F",
+                    "path": "",
+                    "component": "",
+                    "permission": "certificate:template:edit",
+                    "icon": "",
+                    "sortOrder": 3
+                  },
+                  {
+                    "menuId": 9733,
+                    "menuName": "模板删除",
+                    "menuType": "F",
+                    "path": "",
+                    "component": "",
+                    "permission": "certificate:template:delete",
+                    "icon": "",
+                    "sortOrder": 4
+                  },
+                  {
+                    "menuId": 9734,
+                    "menuName": "模板发布",
+                    "menuType": "F",
+                    "path": "",
+                    "component": "",
+                    "permission": "certificate:template:publish",
+                    "icon": "",
+                    "sortOrder": 5
+                  }
+                ]
+              },
+              {
+                "menuId": 9705,
+                "menuName": "签发规则",
+                "menuType": "C",
+                "path": "rules",
+                "component": "certificate/rules/index",
+                "permission": "certificate:rule:list",
+                "icon": "",
+                "sortOrder": 2,
+                "children": [
+                  {
+                    "menuId": 9740,
+                    "menuName": "规则查询",
+                    "menuType": "F",
+                    "path": "",
+                    "component": "",
+                    "permission": "certificate:rule:list",
+                    "icon": "",
+                    "sortOrder": 1
+                  },
+                  {
+                    "menuId": 9741,
+                    "menuName": "规则新增",
+                    "menuType": "F",
+                    "path": "",
+                    "component": "",
+                    "permission": "certificate:rule:add",
+                    "icon": "",
+                    "sortOrder": 2
+                  },
+                  {
+                    "menuId": 9742,
+                    "menuName": "规则编辑",
+                    "menuType": "F",
+                    "path": "",
+                    "component": "",
+                    "permission": "certificate:rule:edit",
+                    "icon": "",
+                    "sortOrder": 3
+                  },
+                  {
+                    "menuId": 9743,
+                    "menuName": "规则删除",
+                    "menuType": "F",
+                    "path": "",
+                    "component": "",
+                    "permission": "certificate:rule:delete",
+                    "icon": "",
+                    "sortOrder": 4
+                  }
+                ]
+              },
+              {
+                "menuId": 9706,
+                "menuName": "已签发证书",
+                "menuType": "C",
+                "path": "certificates",
+                "component": "certificate/certificates/index",
+                "permission": "certificate:cert:list",
+                "icon": "",
+                "sortOrder": 3,
+                "children": [
+                  {
+                    "menuId": 9750,
+                    "menuName": "证书查询",
+                    "menuType": "F",
+                    "path": "",
+                    "component": "",
+                    "permission": "certificate:cert:list",
+                    "icon": "",
+                    "sortOrder": 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "menuName": "系统管理",
+    "menuType": "D",
+    "path": "/admin/system",
+    "component": "Layout",
+    "permission": "",
+    "icon": "Setting",
+    "sortOrder": 3,
+    "children": [
+      {
+        "menuName": "机构组织",
+        "menuType": "M",
+        "path": "org",
+        "component": "Layout",
+        "permission": "",
+        "icon": "OfficeBuilding",
+        "sortOrder": 1,
+        "children": [
+          {
+            "menuName": "机构管理",
+            "menuType": "C",
+            "path": "organization",
+            "component": "system/org/organization/index",
+            "permission": "system:tenant:list",
+            "icon": "Folder",
+            "sortOrder": 1,
+            "children": [
+              {
+                "menuName": "机构查询",
+                "menuType": "F",
+                "permission": "system:tenant:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "机构新增",
+                "menuType": "F",
+                "permission": "system:tenant:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "机构编辑",
+                "menuType": "F",
+                "permission": "system:tenant:edit",
+                "sortOrder": 3
+              }
+            ]
+          },
+          {
+            "menuName": "标签管理",
+            "menuType": "C",
+            "path": "tag",
+            "component": "system/org/tag/index",
+            "permission": "org:tag:list",
+            "icon": "Document",
+            "sortOrder": 3,
+            "children": [
+              {
+                "menuName": "标签查询",
+                "menuType": "F",
+                "permission": "org:tag:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "标签新增",
+                "menuType": "F",
+                "permission": "org:tag:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "标签编辑",
+                "menuType": "F",
+                "permission": "org:tag:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "标签删除",
+                "menuType": "F",
+                "permission": "org:tag:delete",
+                "sortOrder": 4
+              }
+            ]
+          },
+          {
+            "menuName": "岗位管理",
+            "menuType": "C",
+            "path": "position",
+            "component": "system/org/position/index",
+            "permission": "org:position:list",
+            "icon": "Grid",
+            "sortOrder": 4,
+            "children": [
+              {
+                "menuName": "岗位查询",
+                "menuType": "F",
+                "permission": "org:position:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "岗位新增",
+                "menuType": "F",
+                "permission": "org:position:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "岗位编辑",
+                "menuType": "F",
+                "permission": "org:position:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "岗位删除",
+                "menuType": "F",
+                "permission": "org:position:delete",
+                "sortOrder": 4
+              }
+            ]
+          },
+          {
+            "menuName": "部门管理",
+            "menuType": "C",
+            "path": "dept",
+            "component": "system/org/dept/index",
+            "permission": "sys:dept:list",
+            "icon": "Collection",
+            "sortOrder": 5,
+            "children": [
+              {
+                "menuName": "部门查询",
+                "menuType": "F",
+                "permission": "sys:dept:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "缓存查询",
+                "menuType": "F",
+                "permission": "sys:cache:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "参数查询",
+                "menuType": "F",
+                "permission": "sys:config:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "在线强退",
+                "menuType": "F",
+                "permission": "sys:online:kickout",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "日志查询",
+                "menuType": "F",
+                "permission": "sys:operlog:query",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "日志删除",
+                "menuType": "F",
+                "permission": "sys:loginlog:remove",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "文件查询",
+                "menuType": "F",
+                "permission": "sys:file:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "sys:loginlog:list权限",
+                "menuType": "F",
+                "permission": "sys:loginlog:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "sys:operlog:list权限",
+                "menuType": "F",
+                "permission": "sys:operlog:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "部门新增",
+                "menuType": "F",
+                "permission": "sys:dept:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "缓存清理",
+                "menuType": "F",
+                "permission": "sys:cache:clear",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "参数新增",
+                "menuType": "F",
+                "permission": "sys:config:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "在线查询",
+                "menuType": "F",
+                "permission": "sys:online:list",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "日志删除",
+                "menuType": "F",
+                "permission": "sys:operlog:remove",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "日志清空",
+                "menuType": "F",
+                "permission": "sys:loginlog:clean",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "文件上传",
+                "menuType": "F",
+                "permission": "sys:file:upload",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "部门编辑",
+                "menuType": "F",
+                "permission": "sys:dept:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "参数编辑",
+                "menuType": "F",
+                "permission": "sys:config:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "部门删除",
+                "menuType": "F",
+                "permission": "sys:dept:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "参数删除",
+                "menuType": "F",
+                "permission": "sys:config:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "文件删除",
+                "menuType": "F",
+                "permission": "sys:file:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "刷新缓存",
+                "menuType": "F",
+                "permission": "sys:config:clearCache",
+                "sortOrder": 5
+              }
+            ]
+          },
+          {
+            "menuName": "用户管理",
+            "menuType": "C",
+            "path": "user",
+            "component": "system/org/user/index",
+            "permission": "sys:user:list",
+            "icon": "User",
+            "sortOrder": 6,
+            "children": [
+              {
+                "menuName": "用户查询",
+                "menuType": "F",
+                "permission": "sys:user:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "用户新增",
+                "menuType": "F",
+                "permission": "sys:user:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "用户编辑",
+                "menuType": "F",
+                "permission": "sys:user:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "用户删除",
+                "menuType": "F",
+                "permission": "sys:user:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "重置密码",
+                "menuType": "F",
+                "permission": "sys:user:resetPwd",
+                "sortOrder": 5
+              }
+            ]
+          },
+          {
+            "menuName": "角色管理",
+            "menuType": "C",
+            "path": "role",
+            "component": "system/org/role/index",
+            "permission": "sys:role:list",
+            "icon": "Lock",
+            "sortOrder": 7,
+            "children": [
+              {
+                "menuName": "角色查询",
+                "menuType": "F",
+                "permission": "sys:role:list",
+                "sortOrder": 1
+              },
+              {
+                "menuName": "角色新增",
+                "menuType": "F",
+                "permission": "sys:role:add",
+                "sortOrder": 2
+              },
+              {
+                "menuName": "角色编辑",
+                "menuType": "F",
+                "permission": "sys:role:edit",
+                "sortOrder": 3
+              },
+              {
+                "menuName": "角色删除",
+                "menuType": "F",
+                "permission": "sys:role:delete",
+                "sortOrder": 4
+              },
+              {
+                "menuName": "角色详情",
+                "menuType": "F",
+                "permission": "sys:role:query",
+                "sortOrder": 5
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "menuName": "菜单管理",
+        "menuType": "C",
+        "path": "menu",
+        "component": "system/menu/index",
+        "permission": "sys:menu:list",
+        "icon": "Reading",
+        "sortOrder": 3,
+        "children": [
+          {
+            "menuName": "菜单查询",
+            "menuType": "F",
+            "permission": "sys:menu:list",
+            "sortOrder": 1
+          },
+          {
+            "menuName": "菜单新增",
+            "menuType": "F",
+            "permission": "sys:menu:add",
+            "sortOrder": 2
+          },
+          {
+            "menuName": "菜单编辑",
+            "menuType": "F",
+            "permission": "sys:menu:edit",
+            "sortOrder": 3
+          },
+          {
+            "menuName": "菜单删除",
+            "menuType": "F",
+            "permission": "sys:menu:delete",
+            "sortOrder": 4
+          }
+        ]
+      },
+      {
+        "menuName": "字典管理",
+        "menuType": "C",
+        "path": "dict",
+        "component": "system/dict/index",
+        "permission": "sys:dict:list",
+        "icon": "Collection",
+        "sortOrder": 4,
+        "children": [
+          {
+            "menuName": "字典查询",
+            "menuType": "F",
+            "permission": "sys:dict:list",
+            "sortOrder": 1
+          },
+          {
+            "menuName": "字典新增",
+            "menuType": "F",
+            "permission": "sys:dict:add",
+            "sortOrder": 2
+          },
+          {
+            "menuName": "字典编辑",
+            "menuType": "F",
+            "permission": "sys:dict:edit",
+            "sortOrder": 3
+          },
+          {
+            "menuName": "字典删除",
+            "menuType": "F",
+            "permission": "sys:dict:delete",
+            "sortOrder": 4
+          }
+        ]
+      },
+      {
+        "menuName": "文件操作权限",
+        "menuType": "M",
+        "path": "",
+        "component": "",
+        "permission": "",
+        "icon": "",
+        "sortOrder": 99,
+        "children": [
+          {
+            "menuName": "文件查询",
+            "menuType": "F",
+            "permission": "sys:file:list",
+            "sortOrder": 1
+          },
+          {
+            "menuName": "文件上传",
+            "menuType": "F",
+            "permission": "sys:file:upload",
+            "sortOrder": 2
+          },
+          {
+            "menuName": "文件删除",
+            "menuType": "F",
+            "permission": "sys:file:delete",
+            "sortOrder": 3
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,345 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "企业管理员工作台 API 契约",
+    "version": "2.0.1",
+    "description": "STS M5 企业工作台：权限化快捷入口、本企业真实概览与分类待办。教师/学员工作台、通用统计下钻和导出任务中心已删除。"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "sts-service-admin context path"
+    }
+  ],
+  "tags": [
+    {
+      "name": "OpsController",
+      "description": "企业管理员工作台的权限化入口、业务概览和分类待办。"
+    }
+  ],
+  "paths": {
+    "/api/ops/workbench/enterprise": {
+      "get": {
+        "summary": "企业工作台",
+        "description": "权限：`ops:workbench:enterprise`。只返回当前角色已授权的模块入口；待办按分类列出，总数等于分类合计。",
+        "tags": [
+          "OpsController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "ops:workbench:enterprise",
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultOpsWorkbenchSummaryVO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "shortcuts": [
+                      {
+                        "code": "COURSE",
+                        "title": "课程管理",
+                        "path": "/admin/business-center/course/center",
+                        "permission": "course:course:list"
+                      }
+                    ],
+                    "publishedCourseCount": 12,
+                    "runningExamCount": 3,
+                    "runningPlanCount": 2,
+                    "currentParticipantCount": 80,
+                    "endedPassedCount": 40,
+                    "endedFailedCount": 5,
+                    "openTodoCount": 4,
+                    "todos": [
+                      {
+                        "code": "DRAFT_COURSE",
+                        "title": "待发布课程",
+                        "count": 2
+                      },
+                      {
+                        "code": "DRAFT_PLAN",
+                        "title": "待发布培训计划",
+                        "count": 1
+                      },
+                      {
+                        "code": "PENDING_PARTICIPANT",
+                        "title": "待确认参训人",
+                        "count": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ResultEnvelope": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务码，0 表示成功。"
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息。"
+          },
+          "data": {
+            "description": "企业工作台摘要。"
+          }
+        }
+      },
+      "OpsWorkbenchShortcutVO": {
+        "type": "object",
+        "description": "企业工作台快捷入口。入口不授予额外权限。",
+        "required": [
+          "code",
+          "title",
+          "path",
+          "permission"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "入口编码。",
+            "example": "COURSE"
+          },
+          "title": {
+            "type": "string",
+            "description": "入口标题。",
+            "example": "课程管理"
+          },
+          "path": {
+            "type": "string",
+            "description": "前端路由。",
+            "example": "/admin/business-center/course/center"
+          },
+          "permission": {
+            "type": "string",
+            "description": "目标模块权限码。",
+            "example": "course:course:list"
+          }
+        }
+      },
+      "OpsTodoCategoryVO": {
+        "type": "object",
+        "description": "企业工作台待办分类。",
+        "required": [
+          "code",
+          "title",
+          "count"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "待办分类编码。",
+            "example": "DRAFT_COURSE"
+          },
+          "title": {
+            "type": "string",
+            "description": "待办分类标题。",
+            "example": "待发布课程"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "该分类待办数量。",
+            "example": 2
+          }
+        }
+      },
+      "OpsWorkbenchSummaryVO": {
+        "type": "object",
+        "description": "企业管理员工作台摘要。",
+        "required": [
+          "shortcuts",
+          "publishedCourseCount",
+          "runningExamCount",
+          "runningPlanCount",
+          "currentParticipantCount",
+          "endedPassedCount",
+          "endedFailedCount",
+          "openTodoCount",
+          "todos"
+        ],
+        "properties": {
+          "shortcuts": {
+            "type": "array",
+            "description": "当前角色已授权的快捷入口。",
+            "items": {
+              "$ref": "#/components/schemas/OpsWorkbenchShortcutVO"
+            }
+          },
+          "publishedCourseCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "已发布课程数量。",
+            "example": 12
+          },
+          "runningExamCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "进行中考试数量。",
+            "example": 3
+          },
+          "runningPlanCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "进行中培训计划数量。",
+            "example": 2
+          },
+          "currentParticipantCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "当前参训人数。",
+            "example": 80
+          },
+          "endedPassedCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "已结束培训通过人数。",
+            "example": 40
+          },
+          "endedFailedCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "已结束培训未通过人数。",
+            "example": 5
+          },
+          "openTodoCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "待办总数，等于 todos 数量合计。",
+            "example": 4
+          },
+          "todos": {
+            "type": "array",
+            "description": "分类待办列表。",
+            "items": {
+              "$ref": "#/components/schemas/OpsTodoCategoryVO"
+            }
+          }
+        }
+      },
+      "ResultOpsWorkbenchSummaryVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "企业工作台成功响应。",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/OpsWorkbenchSummaryVO"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "请求参数或业务前置条件不满足。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 4000,
+              "message": "请求参数不正确",
+              "data": null
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "未登录或登录态已失效。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 1002,
+              "message": "未登录",
+              "data": null
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "没有接口权限或数据访问权限。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 1003,
+              "message": "无权限访问",
+              "data": null
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "目标业务对象不存在或不可见。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 4040,
+              "message": "资源不存在",
+              "data": null
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "资源状态、版本或唯一性冲突。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 4090,
+              "message": "当前状态不允许该操作",
+              "data": null
+            }
+          }
+        }
+      }
+    }
+  }
+}

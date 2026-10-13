@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sts.exam.mapper.ExamReviewerQueryMapper">
+
+  <select id="selectReviewers" resultType="com.sts.exam.vo.ExamReviewerVO">
+    SELECT
+    r.exam_reviewer_id AS examReviewerId,
+    r.assessment_execution_id AS assessmentExecutionId,
+    x.exam_id AS examId,
+    r.reviewer_user_id AS reviewerUserId,
+    u.user_name AS reviewerName,
+    u.user_code AS reviewerCode,
+    x.organization_id AS reviewerOrganizationId,
+    org.org_name AS reviewerOrganizationName,
+    r.assignment_source AS assignmentSource
+    FROM sts_exam_reviewer r
+    JOIN sts_assessment_execution x ON x.assessment_execution_id = r.assessment_execution_id AND x.deleted = 0
+    LEFT JOIN us_sys_user u ON u.user_id = r.reviewer_user_id AND u.deleted = 0
+    LEFT JOIN sts_org_organization org ON org.organization_id = x.organization_id AND org.deleted = 0
+    WHERE r.assessment_execution_id = #{assessmentExecutionId}
+    ORDER BY r.exam_reviewer_id ASC
+  </select>
+</mapper>

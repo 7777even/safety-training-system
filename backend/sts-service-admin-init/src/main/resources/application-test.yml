@@ -1,0 +1,13 @@
+# 测试/部署初始化环境；默认 profile，或通过 SPRING_PROFILES_ACTIVE=test / --spring.profiles.active=test 启用。
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:8045}/${MYSQL_DATABASE:sts}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:XW0Jtkv3}
+    hikari:
+      minimum-idle: 1
+      maximum-pool-size: 5
+      idle-timeout: 30000
+      pool-name: sts-service-admin-init-pool
+      connection-timeout: 30000

@@ -1,0 +1,2304 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "培训档案 API 契约",
+    "version": "1.4.0",
+    "description": "STS M4 ARCHIVE：一期一档、企业档案、个人档案查询与更新。仅结果完整的 ENDED 培训可形成正式档案；缺少归档必需事实时拒绝归档和下载，查询仍返回 missingItems。三视角返回计划、企业、培训内容、参训人员、签到情况、学员成绩、综合评价、奖惩、影像记录、附件、证书和统计事实；仅一期档案额外返回已提交专家查课。档案文件为 `application/pdf` 正本；已归档的历史 JSON 文件由 `archiveFileIsPdf=false` 标注，提示重新更新档案。证书清单受 `certificate:cert:list` 门控，缺少该权限时响应不含 `certificates` 字段。版本历史和导出任务中心不再对外提供。错误码 9200-9399。"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "sts-service-admin context path"
+    }
+  ],
+  "tags": [
+    {
+      "name": "ArchiveController",
+      "description": "com.sts.archive.controller.ArchiveController"
+    },
+    {
+      "name": "HistoryCorrectionController",
+      "description": "授权追加档案展示更正与留痕"
+    }
+  ],
+  "paths": {
+    "/api/archive/trainings/create-from-plan": {
+      "post": {
+        "summary": "从已结束培训更新档案",
+        "description": "权限：`archive:training:create`。仅结果完整的 `ENDED` 培训可归档；缺少归档必需事实时返回 409 业务码 9204，消息列出 missingItems。进行中或已发布培训返回 409 业务码 9202。",
+        "tags": [
+          "ArchiveController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "archive:training:create",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveCreateFromPlanRequest"
+              },
+              "example": {
+                "trainingPlanId": 1001,
+                "archiveCode": "ARC-2026-001",
+                "versionReason": "培训计划结束后首次归档"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultArchiveTrainingVO"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/archive/trainings/{trainingPlanId}": {
+      "get": {
+        "summary": "查询一期一档",
+        "description": "权限：`archive:training:list`。返回当前培训事实及已提交专家查课逐项答案；无提交时 expertInspections 为空数组。`missingItems` 非空时不得当作正式档案完成。",
+        "tags": [
+          "ArchiveController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "archive:training:list",
+        "parameters": [
+          {
+            "name": "trainingPlanId",
+            "in": "path",
+            "required": true,
+            "description": "培训计划 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1001
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultArchiveViewVO"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/archive/trainings/{trainingPlanId}/file": {
+      "get": {
+        "summary": "下载一期一档文件",
+        "description": "权限：`archive:training:list`。返回当前归档版本的 `application/pdf` 正本，更新档案后生成的文件包含已提交专家查课逐项内容；历史文件不自动改写。还包含封面信息、数据统计、培训内容、参训人员成绩（含签到情况）、综合评价、奖惩、影像记录清单、附件清单与证书清单。缺少必需事实时 409/9204；当前版本尚未生成文件时 409/9204；文件记录缺失时 409/9206；PDF 生成失败时 409/9211。影像与附件原件不内嵌，经受控端点另行获取。",
+        "tags": [
+          "ArchiveController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "archive:training:list",
+        "parameters": [
+          {
+            "name": "trainingPlanId",
+            "in": "path",
+            "required": true,
+            "description": "培训计划 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1001
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "档案 PDF 正本。",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "example": "%PDF-1.7"
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/archive/enterprises": {
+      "get": {
+        "summary": "查询企业档案",
+        "description": "权限：`archive:training:list`。按当前租户企业名称与培训计划字段筛选已结束培训，口径与一期一档相同。只返回当前租户的已结束培训，不跨租户。每行可直接进入该期档案详情并下载档案 PDF。证书清单门控同一期一档。",
+        "tags": [
+          "ArchiveController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "archive:training:list",
+        "parameters": [
+          {
+            "name": "organizationName",
+            "in": "query",
+            "description": "企业名称关键字，须匹配当前租户。",
+            "schema": {
+              "type": "string",
+              "example": "示范企业"
+            }
+          },
+          {
+            "name": "planName",
+            "in": "query",
+            "description": "培训计划名称关键字。",
+            "schema": {
+              "type": "string",
+              "example": "入职安全培训"
+            }
+          },
+          {
+            "name": "planCode",
+            "in": "query",
+            "description": "培训计划编号。",
+            "schema": {
+              "type": "string",
+              "example": "TP-2026-001"
+            }
+          },
+          {
+            "name": "trainingTypeId",
+            "in": "query",
+            "description": "培训类型 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 3
+            }
+          },
+          {
+            "name": "startTimeFrom",
+            "in": "query",
+            "description": "计划开始时间下限（含）。",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-01-01T00:00:00"
+            }
+          },
+          {
+            "name": "startTimeTo",
+            "in": "query",
+            "description": "计划开始时间上限（含）。",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-12-31T23:59:59"
+            }
+          },
+          {
+            "name": "endTimeFrom",
+            "in": "query",
+            "description": "计划结束时间下限（含）。",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-01-01T00:00:00"
+            }
+          },
+          {
+            "name": "endTimeTo",
+            "in": "query",
+            "description": "计划结束时间上限（含）。",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-12-31T23:59:59"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultArchiveViewList"
+          }
+        }
+      }
+    },
+    "/api/archive/persons/{userId}": {
+      "get": {
+        "summary": "查询个人档案",
+        "description": "权限：`archive:training:list`。返回人员基本信息及其已结束培训记录。",
+        "tags": [
+          "ArchiveController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "archive:training:list",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "用户 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 2001
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultArchivePersonVO"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/archive/persons/{userId}/file": {
+      "get": {
+        "summary": "下载个人档案文件",
+        "description": "权限：`archive:training:list`。按当前可见的已结束培训事实即时组装 `application/pdf` 个人档案，不落库、不使用占位文件 ID；PDF 生成失败时 409/9211。缺少必需事实时 409/9204，无已结束培训时 409/9204。证书清单受 `certificate:cert:list` 门控。",
+        "tags": [
+          "ArchiveController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "archive:training:list",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "用户 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 2001
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "个人档案 PDF。",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "example": "%PDF-1.7"
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/archive/persons/{userId}/history/{recordType}/{recordId}/corrections": {
+      "post": {
+        "tags": [
+          "HistoryCorrectionController"
+        ],
+        "summary": "追加档案展示更正",
+        "description": "追加档案展示更正。机构/本人来自登录上下文；1001无效字段/类型/空理由，1002未登录，1003缺权限，9205非本机构或不存在，2040展示版本冲突。更正不改变正式成绩、答卷、冻结结果、归档文件和证书。 来源读取：COURSE/COURSE_QUIZ=course:learning:view，FORMAL_EXAM=exam:attempt:list，TRAINING=training:result:list，PRACTICE/SIMULATION=archive:training:list。新权限不自动授予角色。",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "archive:history:correct AND 对应来源读取权限",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "本机构学员主键",
+            "schema": {
+              "type": "integer",
+              "description": "本机构学员主键",
+              "format": "int64"
+            },
+            "example": 1
+          },
+          {
+            "name": "recordType",
+            "in": "path",
+            "required": true,
+            "description": "历史来源类型",
+            "schema": {
+              "type": "string",
+              "description": "历史来源类型",
+              "enum": [
+                "COURSE",
+                "FORMAL_EXAM",
+                "COURSE_QUIZ",
+                "PRACTICE",
+                "SIMULATION",
+                "TRAINING"
+              ]
+            },
+            "example": "COURSE"
+          },
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "description": "来源记录主键",
+            "schema": {
+              "type": "integer",
+              "description": "来源记录主键",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "统一成功响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "结果码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "结果说明"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/LearnerHistory"
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "recordType": "COURSE",
+                    "recordId": 1,
+                    "title": "安全基础课程",
+                    "original": {
+                      "userName": "张三",
+                      "userCode": "learner",
+                      "occurredTime": "2026-10-08T12:00:00",
+                      "status": "COMPLETED",
+                      "score": null,
+                      "hours": 2,
+                      "scoreVisible": true
+                    },
+                    "current": {
+                      "userName": "张三",
+                      "userCode": "learner",
+                      "occurredTime": "2026-10-08T12:00:00",
+                      "status": "COMPLETED",
+                      "score": null,
+                      "hours": 2,
+                      "scoreVisible": true
+                    },
+                    "version": 0,
+                    "reference": {
+                      "kind": "COURSE",
+                      "resourceId": 1,
+                      "parentId": null,
+                      "itemId": null,
+                      "attemptId": null,
+                      "action": "VIEW_COURSE"
+                    },
+                    "corrections": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 1001,
+                  "message": "参数错误",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 1002,
+                  "message": "未登录",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 1003,
+                  "message": "权限不足",
+                  "data": null
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "历史不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 9205,
+                  "message": "历史不存在",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 2040,
+                  "message": "版本冲突",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "当前版本与允许字段、理由",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoryCorrectionRequest"
+              },
+              "example": {
+                "version": 0,
+                "changes": {
+                  "userName": "更正姓名"
+                },
+                "reason": "核对历史登记资料"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "HistoryCorrectionController"
+        ],
+        "summary": "查询原始摘要及更正留痕",
+        "description": "查询原始摘要及更正留痕。机构/本人来自登录上下文；1001无效字段/类型/空理由，1002未登录，1003缺权限，9205非本机构或不存在，2040展示版本冲突。更正不改变正式成绩、答卷、冻结结果、归档文件和证书。",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "archive:history:correction:list AND 对应来源读取权限",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "本机构学员主键",
+            "schema": {
+              "type": "integer",
+              "description": "本机构学员主键",
+              "format": "int64"
+            },
+            "example": 1
+          },
+          {
+            "name": "recordType",
+            "in": "path",
+            "required": true,
+            "description": "历史来源类型",
+            "schema": {
+              "type": "string",
+              "description": "历史来源类型",
+              "enum": [
+                "COURSE",
+                "FORMAL_EXAM",
+                "COURSE_QUIZ",
+                "PRACTICE",
+                "SIMULATION",
+                "TRAINING"
+              ]
+            },
+            "example": "COURSE"
+          },
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "description": "来源记录主键",
+            "schema": {
+              "type": "integer",
+              "description": "来源记录主键",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "统一成功响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "结果码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "结果说明"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/LearnerHistory"
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "recordType": "COURSE",
+                    "recordId": 1,
+                    "title": "安全基础课程",
+                    "original": {
+                      "userName": "张三",
+                      "userCode": "learner",
+                      "occurredTime": "2026-10-08T12:00:00",
+                      "status": "COMPLETED",
+                      "score": null,
+                      "hours": 2,
+                      "scoreVisible": true
+                    },
+                    "current": {
+                      "userName": "张三",
+                      "userCode": "learner",
+                      "occurredTime": "2026-10-08T12:00:00",
+                      "status": "COMPLETED",
+                      "score": null,
+                      "hours": 2,
+                      "scoreVisible": true
+                    },
+                    "version": 0,
+                    "reference": {
+                      "kind": "COURSE",
+                      "resourceId": 1,
+                      "parentId": null,
+                      "itemId": null,
+                      "attemptId": null,
+                      "action": "VIEW_COURSE"
+                    },
+                    "corrections": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 1001,
+                  "message": "参数错误",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 1002,
+                  "message": "未登录",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 1003,
+                  "message": "权限不足",
+                  "data": null
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "历史不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 9205,
+                  "message": "历史不存在",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 2040,
+                  "message": "版本冲突",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "登录访问令牌。"
+      }
+    },
+    "schemas": {
+      "ArchiveCreateFromPlanRequest": {
+        "type": "object",
+        "description": "从培训计划更新档案的请求。",
+        "properties": {
+          "trainingPlanId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "培训计划 ID。",
+            "example": 1001
+          },
+          "archiveCode": {
+            "type": "string",
+            "description": "档案编码，同一机构下唯一。",
+            "example": "ARC-2026-001"
+          },
+          "versionReason": {
+            "type": "string",
+            "description": "内部快照原因，不对用户展示版本历史。",
+            "example": "培训计划结束后首次归档"
+          }
+        },
+        "required": [
+          "trainingPlanId",
+          "archiveCode",
+          "versionReason"
+        ]
+      },
+      "ArchiveTrainingVO": {
+        "type": "object",
+        "description": "培训档案主体。",
+        "properties": {
+          "trainingArchiveId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "档案 ID。",
+            "example": 1
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "机构 ID。",
+            "example": 1
+          },
+          "archiveCode": {
+            "type": "string",
+            "description": "档案编码。",
+            "example": "ARC-2026-001"
+          },
+          "trainingPlanId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "培训计划 ID。",
+            "example": 1001
+          },
+          "currentVersionNo": {
+            "type": "integer",
+            "description": "内部快照序号，不对用户展示版本历史。",
+            "example": 1
+          },
+          "archiveStatus": {
+            "type": "string",
+            "description": "档案状态。",
+            "example": "SEALED"
+          },
+          "sealedTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "封存时间。",
+            "example": "2026-09-20T10:00:00"
+          }
+        }
+      },
+      "ArchiveViewVO": {
+        "type": "object",
+        "description": "一期/企业/个人三视角共用的档案事实。missingItems 非空时不得当作正式档案完成。`expertInspections` 仅一期档案返回；`certificates` 仅在调用方具备 `certificate:cert:list` 时返回。",
+        "properties": {
+          "trainingPlanId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "培训计划 ID。",
+            "example": 1001
+          },
+          "planCode": {
+            "type": "string",
+            "description": "培训计划编号。",
+            "example": "TP-2026-001"
+          },
+          "planName": {
+            "type": "string",
+            "description": "培训计划名称。",
+            "example": "入职安全培训"
+          },
+          "publishStatus": {
+            "type": "string",
+            "description": "计划状态。",
+            "example": "ENDED"
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "企业 ID。",
+            "example": 1
+          },
+          "organizationName": {
+            "type": "string",
+            "description": "企业名称。",
+            "example": "示范企业"
+          },
+          "participantCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "参训人数。",
+            "example": 20
+          },
+          "missingItems": {
+            "type": "array",
+            "description": "缺失的归档必需事实；当前 `RESULTS` 表示存在结果待补全的参训人。签到情况不进入该字段。",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "RESULTS"
+            ]
+          },
+          "plan": {
+            "type": "object",
+            "description": "培训计划事实。",
+            "properties": {
+              "trainingPlanId": {
+                "type": "integer",
+                "format": "int64",
+                "description": "培训计划 ID。",
+                "example": 1001
+              },
+              "planCode": {
+                "type": "string",
+                "description": "培训计划编号。",
+                "example": "TP-2026-001"
+              },
+              "planName": {
+                "type": "string",
+                "description": "培训计划名称。",
+                "example": "入职安全培训"
+              },
+              "publishStatus": {
+                "type": "string",
+                "description": "计划状态。",
+                "example": "ENDED"
+              },
+              "startTime": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "计划开始时间。",
+                "example": "2026-09-01T09:00:00"
+              },
+              "endTime": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "计划结束时间。",
+                "example": "2026-09-03T18:00:00"
+              },
+              "endedTime": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "计划实际结束时间。",
+                "example": "2026-09-03T18:30:00"
+              },
+              "location": {
+                "type": "string",
+                "nullable": true,
+                "description": "培训地点。",
+                "example": "一号车间"
+              },
+              "trainingNature": {
+                "type": "string",
+                "nullable": true,
+                "description": "培训性质。",
+                "example": "INITIAL"
+              },
+              "applicableRequiredHours": {
+                "type": "number",
+                "nullable": true,
+                "description": "适用要求学时。",
+                "example": 8
+              },
+              "trainingTypeId": {
+                "type": "integer",
+                "format": "int64",
+                "nullable": true,
+                "description": "培训类型 ID。",
+                "example": 3
+              },
+              "trainingTypeName": {
+                "type": "string",
+                "nullable": true,
+                "description": "培训类型名称。",
+                "example": "入职三级教育"
+              }
+            }
+          },
+          "organization": {
+            "type": "object",
+            "description": "企业事实。",
+            "properties": {
+              "organizationId": {
+                "type": "integer",
+                "format": "int64",
+                "description": "企业 ID。",
+                "example": 1
+              },
+              "organizationName": {
+                "type": "string",
+                "nullable": true,
+                "description": "企业名称。",
+                "example": "示范企业"
+              },
+              "orgCode": {
+                "type": "string",
+                "nullable": true,
+                "description": "企业编码。",
+                "example": "DEMO"
+              }
+            }
+          },
+          "contents": {
+            "type": "array",
+            "description": "培训内容清单（内容名称、类型、是否必修、是否计分、权重与要求学时）。",
+            "items": {
+              "type": "object",
+              "properties": {
+                "planContentId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "计划内容 ID。",
+                  "example": 5001
+                },
+                "planStageId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "nullable": true,
+                  "description": "所属计划阶段 ID。",
+                  "example": 3001
+                },
+                "stageName": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "所属阶段名称。",
+                  "example": "线下阶段"
+                },
+                "contentName": {
+                  "type": "string",
+                  "description": "内容名称。",
+                  "example": "线下实操"
+                },
+                "contentType": {
+                  "type": "string",
+                  "description": "内容类型（COURSE/EXAM/QUESTION_BANK/OFFLINE）。",
+                  "example": "OFFLINE"
+                },
+                "isRequired": {
+                  "type": "integer",
+                  "nullable": true,
+                  "description": "是否必修（0否 1是）。",
+                  "example": 1
+                },
+                "isScored": {
+                  "type": "integer",
+                  "nullable": true,
+                  "description": "是否计入综合成绩（0否 1是）。",
+                  "example": 1
+                },
+                "scoreWeight": {
+                  "type": "number",
+                  "nullable": true,
+                  "description": "同类型内容聚合权重。",
+                  "example": 0.4
+                },
+                "requiredHours": {
+                  "type": "number",
+                  "nullable": true,
+                  "description": "安排学时。",
+                  "example": 4
+                },
+                "sortOrder": {
+                  "type": "integer",
+                  "nullable": true,
+                  "description": "显示顺序。",
+                  "example": 1
+                }
+              }
+            }
+          },
+          "participants": {
+            "type": "array",
+            "description": "参训人员清单。",
+            "items": {
+              "type": "object",
+              "properties": {
+                "trainingParticipantId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "参训人 ID。",
+                  "example": 7001
+                },
+                "userId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "nullable": true,
+                  "description": "用户 ID。",
+                  "example": 2001
+                },
+                "userName": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "学员姓名。",
+                  "example": "张三"
+                },
+                "userCode": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "工号。",
+                  "example": "U2001"
+                },
+                "participantOrgId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "nullable": true,
+                  "description": "参训人所属机构 ID。",
+                  "example": 1
+                },
+                "participantOrgName": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "参训人所属机构名称。",
+                  "example": "示范企业"
+                }
+              }
+            }
+          },
+          "attendance": {
+            "type": "array",
+            "description": "签到情况。由已录入的线下成绩映射：教师录入线下成绩即视为到场；计划不含线下内容时为 `NOT_APPLICABLE`。不落库、不作为归档前置条件。",
+            "items": {
+              "type": "object",
+              "properties": {
+                "trainingParticipantId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "参训人 ID。",
+                  "example": 7001
+                },
+                "userId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "nullable": true,
+                  "description": "用户 ID。",
+                  "example": 2001
+                },
+                "userName": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "学员姓名。",
+                  "example": "张三"
+                },
+                "signInStatus": {
+                  "type": "string",
+                  "enum": [
+                    "NOT_APPLICABLE",
+                    "SIGNED",
+                    "NOT_RECORDED"
+                  ],
+                  "description": "签到情况：不适用 / 已到场（已录入线下成绩）/ 尚未录入线下成绩。",
+                  "example": "SIGNED"
+                },
+                "offlineScore": {
+                  "type": "number",
+                  "nullable": true,
+                  "description": "线下成绩。",
+                  "example": 88
+                },
+                "recordedTime": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true,
+                  "description": "最近一次线下成绩录入时间。",
+                  "example": "2026-09-03T16:00:00"
+                }
+              }
+            }
+          },
+          "scores": {
+            "type": "array",
+            "description": "学员成绩。",
+            "items": {
+              "type": "object",
+              "properties": {
+                "trainingParticipantId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "参训人 ID。",
+                  "example": 7001
+                },
+                "userId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "nullable": true,
+                  "description": "用户 ID。",
+                  "example": 2001
+                },
+                "userName": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "学员姓名。",
+                  "example": "张三"
+                },
+                "examScore": {
+                  "type": "number",
+                  "nullable": true,
+                  "description": "考试得分。",
+                  "example": 92
+                },
+                "courseScore": {
+                  "type": "number",
+                  "nullable": true,
+                  "description": "课程得分。",
+                  "example": 85
+                },
+                "offlineScore": {
+                  "type": "number",
+                  "nullable": true,
+                  "description": "线下得分。",
+                  "example": 88
+                },
+                "compositeScore": {
+                  "type": "number",
+                  "nullable": true,
+                  "description": "综合得分。",
+                  "example": 88.5
+                },
+                "resultStatus": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "结果状态（PASSED/FAILED/INCOMPLETE）。",
+                  "example": "PASSED"
+                }
+              }
+            }
+          },
+          "evaluations": {
+            "type": "array",
+            "description": "综合评价：综合分与结果状态。",
+            "items": {
+              "type": "object",
+              "properties": {
+                "trainingParticipantId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "参训人 ID。",
+                  "example": 7001
+                },
+                "userId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "nullable": true,
+                  "description": "用户 ID。",
+                  "example": 2001
+                },
+                "userName": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "学员姓名。",
+                  "example": "张三"
+                },
+                "compositeScore": {
+                  "type": "number",
+                  "nullable": true,
+                  "description": "综合得分。",
+                  "example": 88.5
+                },
+                "resultStatus": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "结果状态（PASSED/FAILED/INCOMPLETE）。",
+                  "example": "PASSED"
+                }
+              }
+            }
+          },
+          "expertInspections": {
+            "type": "array",
+            "description": "仅一期档案返回当前绑定版本的已提交专家查课记录；企业和个人档案不返回。",
+            "items": {
+              "type": "object",
+              "properties": {
+                "contentName": {
+                  "type": "string",
+                  "description": "被检查的计划课程名称。",
+                  "example": "安全课程"
+                },
+                "versionNo": {
+                  "type": "integer",
+                  "description": "专家检查表冻结版本号。",
+                  "example": 2
+                },
+                "evaluatorName": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "提交专家姓名。",
+                  "example": "专家甲"
+                },
+                "submittedTime": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true,
+                  "description": "提交时间。",
+                  "example": "2026-09-29T10:00:00"
+                },
+                "totalScore": {
+                  "type": "number",
+                  "nullable": true,
+                  "description": "专家检查总分，不参与学员综合分。",
+                  "example": 90
+                },
+                "summary": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "查课总体意见。",
+                  "example": "教学清晰"
+                },
+                "items": {
+                  "type": "array",
+                  "description": "发布版本中已作答的冻结检查项目。",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "itemName": {
+                        "type": "string",
+                        "description": "检查项目名称。",
+                        "example": "课程材料"
+                      },
+                      "itemType": {
+                        "type": "string",
+                        "description": "检查项目类型：SCORE 或 TEXT。",
+                        "example": "TEXT"
+                      },
+                      "score": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "分数项答案。",
+                        "example": 90
+                      },
+                      "textValue": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "文本项答案。",
+                        "example": "材料完整"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "example": [
+              {
+                "contentName": "安全课程",
+                "versionNo": 2,
+                "evaluatorName": "专家甲",
+                "submittedTime": "2026-09-29T10:00:00",
+                "totalScore": 90,
+                "summary": "教学清晰",
+                "items": [
+                  {
+                    "itemName": "课程材料",
+                    "itemType": "TEXT",
+                    "textValue": "材料完整"
+                  }
+                ]
+              }
+            ]
+          },
+          "rewardPenalties": {
+            "type": "array",
+            "description": "奖惩记录；与正式结果口径一致，只包含启用（status=1）的记录。",
+            "items": {
+              "type": "object",
+              "properties": {
+                "rewardPenaltyId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "奖惩记录 ID。",
+                  "example": 6001
+                },
+                "trainingParticipantId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "参训人 ID。",
+                  "example": 7001
+                },
+                "recordType": {
+                  "type": "string",
+                  "enum": [
+                    "REWARD",
+                    "PENALTY"
+                  ],
+                  "description": "记录类型。",
+                  "example": "REWARD"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "标题。",
+                  "example": "实操表现优秀"
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "描述。",
+                  "example": "现场操作规范"
+                },
+                "scoreChange": {
+                  "type": "number",
+                  "nullable": true,
+                  "description": "分数变动；空值表示只记录事实、不变更综合分。",
+                  "example": 5
+                },
+                "occurredDate": {
+                  "type": "string",
+                  "format": "date",
+                  "nullable": true,
+                  "description": "发生日期。",
+                  "example": "2026-09-03"
+                },
+                "evidenceFileId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "nullable": true,
+                  "description": "佐证文件 ID，经奖惩佐证端点（`GET /api/training/reward-penalties/{rewardPenaltyId}/evidence`）另行获取。在线一期/企业/个人三视角在具备 `training:reward:list` 时提供受控预览，缺少该权限时整列不提供入口；归档 PDF 不内嵌佐证明细。",
+                  "example": 9001
+                },
+                "status": {
+                  "type": "integer",
+                  "description": "启用状态（0禁用 1正常）。",
+                  "example": 1
+                }
+              }
+            }
+          },
+          "materials": {
+            "type": "array",
+            "description": "影像记录清单：培训资料中 attachmentType 为 IMAGE/VIDEO 且 status 为 1 的记录；原件经受控资料文件端点获取，不内嵌进档案文件。",
+            "items": {
+              "type": "object",
+              "properties": {
+                "trainingAttachmentId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "培训资料 ID。",
+                  "example": 8001
+                },
+                "attachmentType": {
+                  "type": "string",
+                  "enum": [
+                    "IMAGE",
+                    "VIDEO"
+                  ],
+                  "description": "资料类型。",
+                  "example": "IMAGE"
+                },
+                "attachmentName": {
+                  "type": "string",
+                  "description": "资料名称。",
+                  "example": "现场照片"
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "说明。",
+                  "example": "实操现场"
+                },
+                "fileInfoId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "受控文件 ID。",
+                  "example": 9101
+                },
+                "planStageId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "nullable": true,
+                  "description": "关联阶段 ID。",
+                  "example": 3001
+                },
+                "stageName": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "关联阶段名称。",
+                  "example": "线下阶段"
+                },
+                "sortOrder": {
+                  "type": "integer",
+                  "nullable": true,
+                  "description": "显示顺序。",
+                  "example": 1
+                }
+              }
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "description": "附件清单：培训资料中 attachmentType 为 GENERAL/EVALUATION 且 status 为 1 的记录；原件经受控资料文件端点获取。",
+            "items": {
+              "type": "object",
+              "properties": {
+                "trainingAttachmentId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "培训资料 ID。",
+                  "example": 8002
+                },
+                "attachmentType": {
+                  "type": "string",
+                  "enum": [
+                    "GENERAL",
+                    "EVALUATION"
+                  ],
+                  "description": "资料类型。",
+                  "example": "GENERAL"
+                },
+                "attachmentName": {
+                  "type": "string",
+                  "description": "资料名称。",
+                  "example": "培训签到表"
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "说明。",
+                  "example": "纸质签到表扫描件"
+                },
+                "fileInfoId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "受控文件 ID。",
+                  "example": 9102
+                },
+                "planStageId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "nullable": true,
+                  "description": "关联阶段 ID。",
+                  "example": 3001
+                },
+                "stageName": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "关联阶段名称。",
+                  "example": "线下阶段"
+                },
+                "sortOrder": {
+                  "type": "integer",
+                  "nullable": true,
+                  "description": "显示顺序。",
+                  "example": 2
+                }
+              }
+            }
+          },
+          "certificates": {
+            "type": "array",
+            "description": "证书清单（只读聚合）。仅当调用方具备 `certificate:cert:list` 时返回该字段；缺少权限时字段整体不出现。证书原件与下载走既有证书查询与文件端点，不在档案中复制。",
+            "items": {
+              "type": "object",
+              "properties": {
+                "certificateId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "证书 ID。",
+                  "example": 4001
+                },
+                "certificateNo": {
+                  "type": "string",
+                  "description": "证书编号。",
+                  "example": "CERT-2026-0001"
+                },
+                "holderUserId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "持证人用户 ID。",
+                  "example": 2001
+                },
+                "sourceType": {
+                  "type": "string",
+                  "description": "签发来源类型。",
+                  "example": "TRAINING"
+                },
+                "sourceId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "nullable": true,
+                  "description": "签发来源主数据 ID。",
+                  "example": 1001
+                },
+                "issuedTime": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true,
+                  "description": "签发时间。",
+                  "example": "2026-09-04T10:00:00"
+                },
+                "certificateStatus": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "证书状态。",
+                  "example": "ISSUED"
+                }
+              }
+            }
+          },
+          "statistics": {
+            "type": "object",
+            "description": "数据统计。比率分母为 0 时返回空值，不用 0 冒充。",
+            "properties": {
+              "participantCount": {
+                "type": "integer",
+                "format": "int64",
+                "description": "参训人数。",
+                "example": 20
+              },
+              "completedCount": {
+                "type": "integer",
+                "format": "int64",
+                "description": "已完成人数（结果状态不为 INCOMPLETE）。",
+                "example": 18
+              },
+              "passedCount": {
+                "type": "integer",
+                "format": "int64",
+                "description": "通过人数。",
+                "example": 16
+              },
+              "failedCount": {
+                "type": "integer",
+                "format": "int64",
+                "description": "未通过人数。",
+                "example": 2
+              },
+              "incompleteCount": {
+                "type": "integer",
+                "format": "int64",
+                "description": "结果待补全人数。",
+                "example": 2
+              },
+              "passRate": {
+                "type": "number",
+                "nullable": true,
+                "description": "通过率 = 通过人数 / 已判定人数；无已判定参训人时为空值。",
+                "example": 0.8889
+              },
+              "averageCompositeScore": {
+                "type": "number",
+                "nullable": true,
+                "description": "平均综合分；无综合分时为空值。",
+                "example": 88.5
+              },
+              "contentCount": {
+                "type": "integer",
+                "format": "int64",
+                "description": "培训内容项数。",
+                "example": 4
+              },
+              "requiredContentCount": {
+                "type": "integer",
+                "format": "int64",
+                "description": "必修内容项数。",
+                "example": 3
+              },
+              "onlineHoursTotal": {
+                "type": "number",
+                "description": "线上学时合计。",
+                "example": 96
+              },
+              "offlineHoursTotal": {
+                "type": "number",
+                "description": "线下学时合计。",
+                "example": 64
+              },
+              "imageCount": {
+                "type": "integer",
+                "format": "int64",
+                "description": "影像记录数量。",
+                "example": 3
+              },
+              "attachmentCount": {
+                "type": "integer",
+                "format": "int64",
+                "description": "附件数量。",
+                "example": 2
+              },
+              "materialCount": {
+                "type": "integer",
+                "format": "int64",
+                "description": "培训资料总数（影像记录 + 附件）。",
+                "example": 5
+              },
+              "rewardCount": {
+                "type": "integer",
+                "format": "int64",
+                "description": "奖励数量。",
+                "example": 2
+              },
+              "penaltyCount": {
+                "type": "integer",
+                "format": "int64",
+                "description": "惩罚数量。",
+                "example": 0
+              },
+              "signedCount": {
+                "type": "integer",
+                "nullable": true,
+                "description": "已到场人数；计划不含线下内容时为空值。",
+                "example": 18
+              },
+              "notRecordedCount": {
+                "type": "integer",
+                "nullable": true,
+                "description": "尚未录入线下成绩人数；计划不含线下内容时为空值。",
+                "example": 2
+              }
+            }
+          },
+          "fileInfoId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "当前归档版本的受控文件 ID。",
+            "example": 88
+          },
+          "archiveFileIsPdf": {
+            "type": "boolean",
+            "description": "当前档案文件是否为 PDF 正本。历史 JSON 档案为 false，页面据此提示重新更新档案后下载 PDF；历史文件不改写、不迁移。",
+            "example": true
+          }
+        }
+      },
+      "ArchivePersonVO": {
+        "type": "object",
+        "description": "个人档案。",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "用户 ID。",
+            "example": 2001
+          },
+          "userName": {
+            "type": "string",
+            "description": "学员姓名。",
+            "example": "张三"
+          },
+          "userCode": {
+            "type": "string",
+            "description": "工号。",
+            "example": "U2001"
+          },
+          "missingItems": {
+            "type": "array",
+            "description": "缺失的归档必需事实。",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "RESULTS"
+            ]
+          },
+          "trainings": {
+            "type": "array",
+            "description": "已结束培训列表，口径同一期一档。",
+            "items": {
+              "$ref": "#/components/schemas/ArchiveViewVO"
+            }
+          },
+          "fileInfoId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "归档文件 ID。个人档案的文件在下载时按可见事实组装，因此该字段固定为空。",
+            "example": 89
+          },
+          "history": {
+            "type": "array",
+            "description": "当前管理者具备对应来源读取权限的统一历史摘要；不改变文件归档",
+            "items": {
+              "$ref": "#/components/schemas/LearnerHistory"
+            }
+          }
+        }
+      },
+      "ResultEnvelope": {
+        "type": "object",
+        "description": "统一 Result 包装。",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务码，0 成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息。",
+            "example": "success"
+          },
+          "data": {
+            "description": "业务数据。",
+            "nullable": true
+          }
+        }
+      },
+      "HistorySummary": {
+        "type": "object",
+        "description": "原始记录或档案展示摘要，成绩沿用本人可见规则",
+        "properties": {
+          "userName": {
+            "type": "string",
+            "description": "历史身份姓名展示",
+            "nullable": true
+          },
+          "userCode": {
+            "type": "string",
+            "description": "历史账号展示",
+            "nullable": true
+          },
+          "occurredTime": {
+            "type": "string",
+            "description": "发生时间",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "description": "来源领域状态"
+          },
+          "score": {
+            "type": "number",
+            "description": "已允许公开的成绩；未公开或不评分为空",
+            "nullable": true
+          },
+          "hours": {
+            "type": "number",
+            "description": "已有学时；不适用为空",
+            "nullable": true
+          },
+          "scoreVisible": {
+            "type": "boolean",
+            "description": "原领域是否允许公开成绩"
+          }
+        }
+      },
+      "HistoryReference": {
+        "type": "object",
+        "description": "受控原入口引用，两端映射现有路由，目标接口重新鉴权",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "原入口业务类型",
+            "enum": [
+              "COURSE",
+              "FORMAL_EXAM",
+              "COURSE_QUIZ",
+              "TRAINING",
+              "PRACTICE",
+              "SIMULATION"
+            ]
+          },
+          "resourceId": {
+            "type": "integer",
+            "description": "入口资源主键",
+            "format": "int64"
+          },
+          "parentId": {
+            "type": "integer",
+            "description": "父考试或计划主键",
+            "format": "int64",
+            "nullable": true
+          },
+          "itemId": {
+            "type": "integer",
+            "description": "课程内容项",
+            "format": "int64",
+            "nullable": true
+          },
+          "attemptId": {
+            "type": "integer",
+            "description": "原答卷主键",
+            "format": "int64",
+            "nullable": true
+          },
+          "action": {
+            "type": "string",
+            "description": "原入口动作",
+            "nullable": true
+          }
+        }
+      },
+      "HistoryCorrection": {
+        "type": "object",
+        "description": "不可覆盖的追加更正；本人轨迹不返回尚未公开的score前后值",
+        "properties": {
+          "correctionId": {
+            "type": "integer",
+            "description": "更正主键",
+            "format": "int64"
+          },
+          "version": {
+            "type": "integer",
+            "description": "展示版本"
+          },
+          "before": {
+            "type": "object",
+            "description": "修改字段在上一个展示版本的前值",
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "after": {
+            "type": "object",
+            "description": "本次修改字段后值",
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "reason": {
+            "type": "string",
+            "description": "更正理由"
+          },
+          "operatorId": {
+            "type": "integer",
+            "description": "操作人主键",
+            "format": "int64"
+          },
+          "operatorName": {
+            "type": "string",
+            "description": "操作人姓名快照",
+            "nullable": true
+          },
+          "operatedTime": {
+            "type": "string",
+            "description": "操作时间",
+            "format": "date-time"
+          }
+        }
+      },
+      "LearnerHistory": {
+        "type": "object",
+        "description": "原始记录与档案更正分开展示，禁止冒充正式计算结果",
+        "properties": {
+          "recordType": {
+            "type": "string",
+            "description": "历史来源",
+            "enum": [
+              "COURSE",
+              "FORMAL_EXAM",
+              "COURSE_QUIZ",
+              "PRACTICE",
+              "SIMULATION",
+              "TRAINING"
+            ]
+          },
+          "recordId": {
+            "type": "integer",
+            "description": "来源记录主键",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string",
+            "description": "来源名称"
+          },
+          "original": {
+            "$ref": "#/components/schemas/HistorySummary"
+          },
+          "current": {
+            "$ref": "#/components/schemas/HistorySummary"
+          },
+          "version": {
+            "type": "integer",
+            "description": "当前展示版本，原始为0"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/HistoryReference"
+          },
+          "corrections": {
+            "type": "array",
+            "description": "详情更正轨迹；列表返回空数组",
+            "items": {
+              "$ref": "#/components/schemas/HistoryCorrection"
+            }
+          }
+        }
+      },
+      "HistoryCorrectionRequest": {
+        "type": "object",
+        "description": "只追加摘要更正，不修改原记录/冻结资产，不重算",
+        "required": [
+          "version",
+          "changes",
+          "reason"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "description": "读取的当前展示版本",
+            "minimum": 0
+          },
+          "changes": {
+            "type": "object",
+            "description": "userName/userCode文本、occurredTime日期时间、领域status、适用的score/hours数值或null；其余拒绝",
+            "minProperties": 1,
+            "maxProperties": 6,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "reason": {
+            "type": "string",
+            "description": "非空更正依据",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        }
+      }
+    },
+    "responses": {
+      "ResultArchiveTrainingVO": {
+        "description": "操作成功。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 0,
+              "message": "success",
+              "data": {
+                "trainingArchiveId": 1,
+                "archiveCode": "ARC-2026-001",
+                "trainingPlanId": 1001,
+                "currentVersionNo": 1,
+                "archiveStatus": "SEALED"
+              }
+            }
+          }
+        }
+      },
+      "ResultArchiveViewVO": {
+        "description": "操作成功。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 0,
+              "message": "success",
+              "data": {
+                "trainingPlanId": 1001,
+                "planCode": "TP-2026-001",
+                "planName": "入职安全培训",
+                "publishStatus": "ENDED",
+                "organizationName": "示范企业",
+                "participantCount": 20,
+                "missingItems": [],
+                "contents": [
+                  {
+                    "planContentId": 5001,
+                    "planStageId": 3001,
+                    "stageName": "线下阶段",
+                    "contentName": "线下实操",
+                    "contentType": "OFFLINE",
+                    "isRequired": 1,
+                    "isScored": 1,
+                    "requiredHours": 4,
+                    "sortOrder": 1
+                  }
+                ],
+                "participants": [
+                  {
+                    "trainingParticipantId": 7001,
+                    "userId": 2001,
+                    "userName": "张三",
+                    "userCode": "U2001"
+                  }
+                ],
+                "attendance": [
+                  {
+                    "trainingParticipantId": 7001,
+                    "userId": 2001,
+                    "userName": "张三",
+                    "signInStatus": "SIGNED",
+                    "offlineScore": 88
+                  }
+                ],
+                "statistics": {
+                  "participantCount": 20,
+                  "completedCount": 18,
+                  "passedCount": 16,
+                  "failedCount": 2,
+                  "incompleteCount": 2,
+                  "passRate": 0.8889,
+                  "averageCompositeScore": 88.5,
+                  "signedCount": 18,
+                  "notRecordedCount": 2
+                },
+                "fileInfoId": 88,
+                "archiveFileIsPdf": true
+              }
+            }
+          }
+        }
+      },
+      "ResultArchiveViewList": {
+        "description": "操作成功。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 0,
+              "message": "success",
+              "data": [
+                {
+                  "trainingPlanId": 1001,
+                  "planName": "入职安全培训",
+                  "missingItems": [
+                    "RESULTS"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "ResultArchivePersonVO": {
+        "description": "操作成功。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 0,
+              "message": "success",
+              "data": {
+                "userId": 2001,
+                "userName": "张三",
+                "missingItems": [
+                  "RESULTS"
+                ],
+                "trainings": []
+              }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "资源不存在。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 9201,
+              "message": "培训计划不存在",
+              "data": null
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "状态冲突或缺少归档必需事实。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 9204,
+              "message": "缺少归档必需事实: RESULTS",
+              "data": null
+            }
+          }
+        }
+      }
+    }
+  }
+}

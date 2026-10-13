@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sts.person.mapper.PersonClassificationMapper">
+  <!-- 所有业务表显式检查归属和逻辑删除；用户条件仅通过绑定参数传入。 -->
+  <select id="resolve" resultType="java.lang.Long">
+    SELECT DISTINCT u.user_id FROM us_sys_user u
+    LEFT JOIN sts_person_profile p ON p.user_id=u.user_id AND p.organization_id=#{organizationId} AND p.deleted=0
+    WHERE u.organization_id=#{organizationId} AND u.deleted=0 AND u.status=1
+    <if test="condition.keyword != null and condition.keyword != ''">
+      AND (u.user_name LIKE CONCAT('%',#{condition.keyword},'%') OR u.user_code LIKE CONCAT('%',#{condition.keyword},'%'))
+    </if>
+    <if test="condition.minAge != null">AND TIMESTAMPDIFF(YEAR,p.birth_date,#{today}) &gt;= #{condition.minAge}</if>
+    <if test="condition.maxAge != null">AND TIMESTAMPDIFF(YEAR,p.birth_date,#{today}) &lt;= #{condition.maxAge}</if>
+    <if test="condition.deptIds != null and !condition.deptIds.isEmpty()">
+      AND EXISTS (SELECT 1 FROM us_sys_dept d WHERE d.dept_id=u.dept_id AND d.organization_id=#{organizationId} AND d.deleted=0 AND (
+      <foreach collection="condition.deptIds" item="id" separator=" OR ">d.dept_id=#{id} OR FIND_IN_SET(#{id},d.ancestors)&gt;0</foreach>))
+    </if>
+    <if test="condition.positionIds != null and !condition.positionIds.isEmpty()">
+      AND EXISTS (SELECT 1 FROM sts_org_user_position a JOIN sts_org_position m ON m.position_id=a.position_id AND m.organization_id=#{organizationId} AND m.deleted=0 AND m.status=1
+       WHERE a.user_id=u.user_id AND a.organization_id=#{organizationId} AND a.position_id IN
+       <foreach collection="condition.positionIds" item="id" open="(" separator="," close=")">#{id}</foreach>)
+    </if>
+    <if test="condition.tagIds != null and !condition.tagIds.isEmpty()">
+      AND EXISTS (SELECT 1 FROM sts_org_user_tag a JOIN sts_org_tag m ON m.tag_id=a.tag_id AND m.organization_id=#{organizationId} AND m.deleted=0 AND m.status=1
+       WHERE a.user_id=u.user_id AND a.organization_id=#{organizationId} AND a.tag_id IN
+       <foreach collection="condition.tagIds" item="id" open="(" separator="," close=")">#{id}</foreach>)
+    </if>
+    <if test="condition.genders != null and !condition.genders.isEmpty()">AND p.gender IN
+      <foreach collection="condition.genders" item="value" open="(" separator="," close=")">#{value}</foreach>
+    </if>
+    <if test="condition.educations != null and !condition.educations.isEmpty()">AND p.education IN
+      <foreach collection="condition.educations" item="value" open="(" separator="," close=")">#{value}</foreach>
+    </if>
+    <if test="condition.occupation != null and condition.occupation != ''">AND p.occupation LIKE CONCAT('%',#{condition.occupation},'%')</if>
+    <if test="condition.major != null and condition.major != ''">AND p.major LIKE CONCAT('%',#{condition.major},'%')</if>
+    <if test="condition.workExperience != null and condition.workExperience != ''">AND p.work_experience LIKE CONCAT('%',#{condition.workExperience},'%')</if>
+    <if test="condition.specialty != null and condition.specialty != ''">AND p.specialty LIKE CONCAT('%',#{condition.specialty},'%')</if>
+    <if test="condition.qualification != null and condition.qualification != ''">AND p.qualification LIKE CONCAT('%',#{condition.qualification},'%')</if>
+    <if test="condition.rewardPenaltyNote != null and condition.rewardPenaltyNote != ''">AND p.reward_penalty_note LIKE CONCAT('%',#{condition.rewardPenaltyNote},'%')</if>
+    <if test="condition.workContent != null and condition.workContent != ''">AND p.work_content LIKE CONCAT('%',#{condition.workContent},'%')</if>
+    <if test="condition.workSkills != null and condition.workSkills != ''">AND p.work_skills LIKE CONCAT('%',#{condition.workSkills},'%')</if>
+    <if test="condition.trainingPlanId != null">
+      AND EXISTS (SELECT 1 FROM sts_training_participant t JOIN sts_training_plan plan ON plan.training_plan_id=t.training_plan_id AND plan.organization_id=#{organizationId} AND plan.deleted=0
+      WHERE t.organization_id=#{organizationId} AND t.deleted=0 AND t.user_id=u.user_id AND t.participant_status!='WITHDRAWN' AND t.training_plan_id=#{condition.trainingPlanId}
+      )
+    </if>
+    ORDER BY u.user_id
+  </select>
+  <select id="trainingFacts" resultType="com.sts.person.vo.PersonTrainingFactVO">
+    SELECT t.training_participant_id,t.training_plan_id, plan.plan_name, t.result_status, t.completed_time,t.online_hours,t.offline_hours,
+      (SELECT GROUP_CONCAT(r.title ORDER BY r.reward_penalty_id SEPARATOR '；') FROM sts_training_reward_penalty r
+       WHERE r.organization_id=#{organizationId} AND r.deleted=0 AND r.status=1 AND r.training_participant_id=t.training_participant_id) AS reward_penalty_titles
+    FROM sts_training_participant t JOIN sts_training_plan plan ON plan.training_plan_id=t.training_plan_id AND plan.organization_id=#{organizationId} AND plan.deleted=0
+    WHERE t.organization_id=#{organizationId} AND t.user_id=#{userId} AND t.deleted=0 AND t.participant_status!='WITHDRAWN'
+    ORDER BY t.training_plan_id DESC
+  </select>
+</mapper>

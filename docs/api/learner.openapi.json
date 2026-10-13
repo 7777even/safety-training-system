@@ -1,0 +1,1450 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "学员首页与消息接口",
+    "version": "1.1.0",
+    "description": "第四批47/61本人首页、消息与52统一历史；本人历史包括结束、完成、退出后的已有记录。"
+  },
+  "tags": [
+    {
+      "name": "LearnerController",
+      "description": "登录用户本人首页、持久化消息与实时变化推送"
+    },
+    {
+      "name": "LearnerHistoryController",
+      "description": "本人统一学习考试档案与只读更正轨迹"
+    }
+  ],
+  "paths": {
+    "/api/learner/home/tasks": {
+      "get": {
+        "tags": [
+          "LearnerController"
+        ],
+        "summary": "分页查询本人首页已分配任务",
+        "description": "分页查询本人首页已分配任务。登录会话取得本人及机构，不接受userId；不创建报名/作答，不返回隐藏成绩和答案。1001参数错误；1002未登录；1003无权限；4050租户上下文缺失。",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "LOGIN",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "页码，从1开始",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页条数，1至200",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 20
+            },
+            "example": 20
+          },
+          {
+            "name": "query.kind",
+            "in": "query",
+            "description": "任务分类；缺省ALL",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ALL",
+                "COURSE",
+                "FORMAL_EXAM",
+                "COURSE_QUIZ",
+                "TRAINING"
+              ]
+            },
+            "example": "COURSE"
+          },
+          {
+            "name": "query.keyword",
+            "in": "query",
+            "description": "任务名称包含查询",
+            "schema": {
+              "type": "string"
+            },
+            "example": "安全"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "本人真实分页数据",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomePage"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "成功",
+                  "data": {
+                    "list": [
+                      {
+                        "key": "course-31",
+                        "kind": "COURSE",
+                        "title": "安全课程",
+                        "status": "LEARNING",
+                        "action": "VIEW_COURSE",
+                        "resourceId": 31,
+                        "parentId": null,
+                        "itemId": null,
+                        "endTime": "2026-10-10T18:00:00",
+                        "attemptId": null
+                      }
+                    ],
+                    "total": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "code": 1001,
+                  "message": "参数错误",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "code": 1002,
+                  "message": "未登录",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "code": 1003,
+                  "message": "无权限",
+                  "data": null
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "租户上下文缺失",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "code": 4050,
+                  "message": "租户上下文缺失",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/learner/messages": {
+      "get": {
+        "tags": [
+          "LearnerController"
+        ],
+        "summary": "分页查询本人持久化站内消息",
+        "description": "分页查询本人持久化站内消息。登录会话取得本人及机构，不接受userId；不创建报名/作答，不返回隐藏成绩和答案。1001参数错误；1002未登录；1003无权限；4050租户上下文缺失。 课程安排、上下架、考试、学习/测试、培训与时间提醒只向实际接收人发送。已读管理不在本批范围。业务跳转必须重新校验资源可见性。",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "LOGIN",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "页码，从1开始",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页条数，1至200",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 20
+            },
+            "example": 20
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "本人真实分页数据",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagePage"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "成功",
+                  "data": {
+                    "list": [
+                      {
+                        "recipientId": 5,
+                        "messageId": 4,
+                        "kind": "COURSE",
+                        "title": "安全课程",
+                        "content": "已为你安排学习任务",
+                        "resourceId": 31,
+                        "parentId": null,
+                        "itemId": null,
+                        "createTime": "2026-10-08T18:00:00"
+                      }
+                    ],
+                    "total": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "code": 1001,
+                  "message": "参数错误",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "code": 1002,
+                  "message": "未登录",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "code": 1003,
+                  "message": "无权限",
+                  "data": null
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "租户上下文缺失",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "code": 4050,
+                  "message": "租户上下文缺失",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/learner/messages/stream": {
+      "get": {
+        "tags": [
+          "LearnerController"
+        ],
+        "summary": "在线推送本人消息变化",
+        "description": "SSE原始流，不包装Result。Authorization携带Bearer令牌，禁止令牌放入URL。3秒检查在线接收人的已提交消息变化；messages事件data为JSON总数，客户端重新读取本人消息列表。心跳为SSE注释。每次重连均补发当前数量，不使用自增ID推断提交顺序。连接过期/退出后关闭；断线重连，离线仍可查持久化列表。代理需要保持流式响应且不缓存、不缓冲。仅PC/H5，不提供微信/App系统推送。1002未登录；4050租户缺失。",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "LOGIN",
+        "responses": {
+          "200": {
+            "description": "持续SSE变化及心跳",
+            "headers": {
+              "Cache-Control": {
+                "description": "禁止缓存",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "no-store"
+              },
+              "X-Accel-Buffering": {
+                "description": "代理关闭缓冲",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "no"
+              }
+            },
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "标准SSE帧"
+                },
+                "example": "event:messages\ndata:{\"total\":2}\n\n:heartbeat\n\n"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "code": 1002,
+                  "message": "未登录",
+                  "data": null
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "租户上下文缺失",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "code": 4050,
+                  "message": "租户上下文缺失",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/learner/history": {
+      "get": {
+        "tags": [
+          "LearnerHistoryController"
+        ],
+        "summary": "查询本人统一历史",
+        "description": "查询本人统一历史。机构/本人来自登录上下文；1001无效字段/类型/空理由，1002未登录，1003缺权限，9205非本机构或不存在，2040展示版本冲突。更正不改变正式成绩、答卷、冻结结果、归档文件和证书。",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "LOGIN",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "required": false,
+            "description": "页码",
+            "schema": {
+              "type": "integer",
+              "description": "页码",
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "description": "每页条数",
+            "schema": {
+              "type": "integer",
+              "description": "每页条数",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "example": 1
+          },
+          {
+            "name": "query.recordType",
+            "in": "query",
+            "required": false,
+            "description": "来源分类",
+            "schema": {
+              "type": "string",
+              "description": "来源分类",
+              "enum": [
+                "ALL",
+                "COURSE",
+                "FORMAL_EXAM",
+                "COURSE_QUIZ",
+                "PRACTICE",
+                "SIMULATION",
+                "TRAINING"
+              ]
+            },
+            "example": "ALL"
+          },
+          {
+            "name": "query.keyword",
+            "in": "query",
+            "required": false,
+            "description": "来源名称",
+            "schema": {
+              "type": "string",
+              "description": "来源名称"
+            },
+            "example": "安全"
+          },
+          {
+            "name": "query.fromDate",
+            "in": "query",
+            "required": false,
+            "description": "发生日期起点",
+            "schema": {
+              "type": "string",
+              "description": "发生日期起点",
+              "format": "date"
+            },
+            "example": "2026-10-08"
+          },
+          {
+            "name": "query.toDate",
+            "in": "query",
+            "required": false,
+            "description": "发生日期终点",
+            "schema": {
+              "type": "string",
+              "description": "发生日期终点",
+              "format": "date"
+            },
+            "example": "2026-10-08"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "统一成功响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "结果码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "结果说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "统一分页",
+                      "properties": {
+                        "list": {
+                          "type": "array",
+                          "description": "当前页历史",
+                          "items": {
+                            "$ref": "#/components/schemas/LearnerHistory"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "总条数"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "list": [
+                      {
+                        "recordType": "COURSE",
+                        "recordId": 1,
+                        "title": "安全基础课程",
+                        "original": {
+                          "userName": "张三",
+                          "userCode": "learner",
+                          "occurredTime": "2026-10-08T12:00:00",
+                          "status": "COMPLETED",
+                          "score": null,
+                          "hours": 2,
+                          "scoreVisible": true
+                        },
+                        "current": {
+                          "userName": "张三",
+                          "userCode": "learner",
+                          "occurredTime": "2026-10-08T12:00:00",
+                          "status": "COMPLETED",
+                          "score": null,
+                          "hours": 2,
+                          "scoreVisible": true
+                        },
+                        "version": 0,
+                        "reference": {
+                          "kind": "COURSE",
+                          "resourceId": 1,
+                          "parentId": null,
+                          "itemId": null,
+                          "attemptId": null,
+                          "action": "VIEW_COURSE"
+                        },
+                        "corrections": []
+                      }
+                    ],
+                    "total": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 1001,
+                  "message": "参数错误",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 1002,
+                  "message": "未登录",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 1003,
+                  "message": "权限不足",
+                  "data": null
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "历史不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 9205,
+                  "message": "历史不存在",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 2040,
+                  "message": "版本冲突",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/learner/history/{recordType}/{recordId}": {
+      "get": {
+        "tags": [
+          "LearnerHistoryController"
+        ],
+        "summary": "本人历史原始摘要及更正轨迹",
+        "description": "本人历史原始摘要及更正轨迹。机构/本人来自登录上下文；1001无效字段/类型/空理由，1002未登录，1003缺权限，9205非本机构或不存在，2040展示版本冲突。更正不改变正式成绩、答卷、冻结结果、归档文件和证书。",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "LOGIN",
+        "parameters": [
+          {
+            "name": "recordType",
+            "in": "path",
+            "required": true,
+            "description": "历史来源类型",
+            "schema": {
+              "type": "string",
+              "description": "历史来源类型",
+              "enum": [
+                "COURSE",
+                "FORMAL_EXAM",
+                "COURSE_QUIZ",
+                "PRACTICE",
+                "SIMULATION",
+                "TRAINING"
+              ]
+            },
+            "example": "COURSE"
+          },
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "description": "来源记录主键",
+            "schema": {
+              "type": "integer",
+              "description": "来源记录主键",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "统一成功响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "结果码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "结果说明"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/LearnerHistory"
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "recordType": "COURSE",
+                    "recordId": 1,
+                    "title": "安全基础课程",
+                    "original": {
+                      "userName": "张三",
+                      "userCode": "learner",
+                      "occurredTime": "2026-10-08T12:00:00",
+                      "status": "COMPLETED",
+                      "score": null,
+                      "hours": 2,
+                      "scoreVisible": true
+                    },
+                    "current": {
+                      "userName": "张三",
+                      "userCode": "learner",
+                      "occurredTime": "2026-10-08T12:00:00",
+                      "status": "COMPLETED",
+                      "score": null,
+                      "hours": 2,
+                      "scoreVisible": true
+                    },
+                    "version": 0,
+                    "reference": {
+                      "kind": "COURSE",
+                      "resourceId": 1,
+                      "parentId": null,
+                      "itemId": null,
+                      "attemptId": null,
+                      "action": "VIEW_COURSE"
+                    },
+                    "corrections": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 1001,
+                  "message": "参数错误",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 1002,
+                  "message": "未登录",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 1003,
+                  "message": "权限不足",
+                  "data": null
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "历史不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 9205,
+                  "message": "历史不存在",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "错误响应",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "错误码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "错误说明"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "无数据",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "code": 2040,
+                  "message": "版本冲突",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "当前登录会话令牌"
+      }
+    },
+    "schemas": {
+      "LearnerHomeTask": {
+        "type": "object",
+        "description": "本人首页任务摘要",
+        "required": [
+          "key",
+          "kind",
+          "title",
+          "status",
+          "resourceId"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "来源与ID组成的任务标识"
+          },
+          "kind": {
+            "type": "string",
+            "description": "业务来源类型",
+            "enum": [
+              "COURSE",
+              "FORMAL_EXAM",
+              "COURSE_QUIZ",
+              "TRAINING",
+              "COURSE_CATALOG"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "真实任务名称"
+          },
+          "status": {
+            "type": "string",
+            "description": "原来源业务状态"
+          },
+          "action": {
+            "type": "string",
+            "description": "沿用原领域动作：VIEW_COURSE/VIEW_TRAINING/START/CONTINUE/WAIT_REVIEW/VIEW_RESULT；无动作为空",
+            "nullable": true
+          },
+          "resourceId": {
+            "type": "integer",
+            "description": "业务主引用，不同来源ID不能混用",
+            "format": "int64"
+          },
+          "parentId": {
+            "type": "integer",
+            "description": "父业务引用；正式考试为考试ID，其余可空",
+            "format": "int64",
+            "nullable": true
+          },
+          "itemId": {
+            "type": "integer",
+            "description": "课程测验内容项ID，其余为空",
+            "format": "int64",
+            "nullable": true
+          },
+          "endTime": {
+            "type": "string",
+            "description": "课程/培训截止时间；考核未提供时为空",
+            "format": "date-time",
+            "nullable": true
+          },
+          "attemptId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "原领域允许回看的当前考卷ID"
+          }
+        }
+      },
+      "LearnerMessage": {
+        "type": "object",
+        "description": "本人站内消息；来源失效后仍保留",
+        "required": [
+          "recipientId",
+          "messageId",
+          "kind",
+          "title",
+          "content",
+          "resourceId",
+          "createTime"
+        ],
+        "properties": {
+          "recipientId": {
+            "type": "integer",
+            "description": "实际投递主键",
+            "format": "int64"
+          },
+          "messageId": {
+            "type": "integer",
+            "description": "消息主键",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string",
+            "description": "业务来源类型",
+            "enum": [
+              "COURSE",
+              "FORMAL_EXAM",
+              "COURSE_QUIZ",
+              "TRAINING",
+              "COURSE_CATALOG"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "消息标题"
+          },
+          "content": {
+            "type": "string",
+            "description": "通知正文"
+          },
+          "resourceId": {
+            "type": "integer",
+            "description": "业务主引用，不同来源ID不能混用",
+            "format": "int64"
+          },
+          "parentId": {
+            "type": "integer",
+            "description": "父业务引用；正式考试为考试ID，其余可空",
+            "format": "int64",
+            "nullable": true
+          },
+          "itemId": {
+            "type": "integer",
+            "description": "课程测验内容项ID，其余为空",
+            "format": "int64",
+            "nullable": true
+          },
+          "createTime": {
+            "type": "string",
+            "description": "服务端生成时间",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "description": "统一业务错误",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务错误码"
+          },
+          "message": {
+            "type": "string",
+            "description": "中文错误说明"
+          },
+          "data": {
+            "type": "object",
+            "description": "失败时为空",
+            "nullable": true
+          }
+        }
+      },
+      "HomePage": {
+        "type": "object",
+        "description": "标准本人分页结果",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "成功为0"
+          },
+          "message": {
+            "type": "string",
+            "description": "响应说明"
+          },
+          "data": {
+            "type": "object",
+            "description": "分页数据",
+            "required": [
+              "list",
+              "total"
+            ],
+            "properties": {
+              "list": {
+                "type": "array",
+                "description": "当前页记录",
+                "items": {
+                  "$ref": "#/components/schemas/LearnerHomeTask"
+                }
+              },
+              "total": {
+                "type": "integer",
+                "description": "符合条件记录总数",
+                "format": "int64"
+              }
+            }
+          }
+        }
+      },
+      "MessagePage": {
+        "type": "object",
+        "description": "标准本人分页结果",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "成功为0"
+          },
+          "message": {
+            "type": "string",
+            "description": "响应说明"
+          },
+          "data": {
+            "type": "object",
+            "description": "分页数据",
+            "required": [
+              "list",
+              "total"
+            ],
+            "properties": {
+              "list": {
+                "type": "array",
+                "description": "当前页记录",
+                "items": {
+                  "$ref": "#/components/schemas/LearnerMessage"
+                }
+              },
+              "total": {
+                "type": "integer",
+                "description": "符合条件记录总数",
+                "format": "int64"
+              }
+            }
+          }
+        }
+      },
+      "HistorySummary": {
+        "type": "object",
+        "description": "原始记录或档案展示摘要，成绩沿用本人可见规则",
+        "properties": {
+          "userName": {
+            "type": "string",
+            "description": "历史身份姓名展示",
+            "nullable": true
+          },
+          "userCode": {
+            "type": "string",
+            "description": "历史账号展示",
+            "nullable": true
+          },
+          "occurredTime": {
+            "type": "string",
+            "description": "发生时间",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "description": "来源领域状态"
+          },
+          "score": {
+            "type": "number",
+            "description": "已允许公开的成绩；未公开或不评分为空",
+            "nullable": true
+          },
+          "hours": {
+            "type": "number",
+            "description": "已有学时；不适用为空",
+            "nullable": true
+          },
+          "scoreVisible": {
+            "type": "boolean",
+            "description": "原领域是否允许公开成绩"
+          }
+        }
+      },
+      "HistoryReference": {
+        "type": "object",
+        "description": "受控原入口引用，两端映射现有路由，目标接口重新鉴权",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "原入口业务类型",
+            "enum": [
+              "COURSE",
+              "FORMAL_EXAM",
+              "COURSE_QUIZ",
+              "TRAINING",
+              "PRACTICE",
+              "SIMULATION"
+            ]
+          },
+          "resourceId": {
+            "type": "integer",
+            "description": "入口资源主键",
+            "format": "int64"
+          },
+          "parentId": {
+            "type": "integer",
+            "description": "父考试或计划主键",
+            "format": "int64",
+            "nullable": true
+          },
+          "itemId": {
+            "type": "integer",
+            "description": "课程内容项",
+            "format": "int64",
+            "nullable": true
+          },
+          "attemptId": {
+            "type": "integer",
+            "description": "原答卷主键",
+            "format": "int64",
+            "nullable": true
+          },
+          "action": {
+            "type": "string",
+            "description": "原入口动作",
+            "nullable": true
+          }
+        }
+      },
+      "HistoryCorrection": {
+        "type": "object",
+        "description": "不可覆盖的追加更正；本人轨迹不返回尚未公开的score前后值",
+        "properties": {
+          "correctionId": {
+            "type": "integer",
+            "description": "更正主键",
+            "format": "int64"
+          },
+          "version": {
+            "type": "integer",
+            "description": "展示版本"
+          },
+          "before": {
+            "type": "object",
+            "description": "修改字段在上一个展示版本的前值",
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "after": {
+            "type": "object",
+            "description": "本次修改字段后值",
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "reason": {
+            "type": "string",
+            "description": "更正理由"
+          },
+          "operatorId": {
+            "type": "integer",
+            "description": "操作人主键",
+            "format": "int64"
+          },
+          "operatorName": {
+            "type": "string",
+            "description": "操作人姓名快照",
+            "nullable": true
+          },
+          "operatedTime": {
+            "type": "string",
+            "description": "操作时间",
+            "format": "date-time"
+          }
+        }
+      },
+      "LearnerHistory": {
+        "type": "object",
+        "description": "原始记录与档案更正分开展示，禁止冒充正式计算结果",
+        "properties": {
+          "recordType": {
+            "type": "string",
+            "description": "历史来源",
+            "enum": [
+              "COURSE",
+              "FORMAL_EXAM",
+              "COURSE_QUIZ",
+              "PRACTICE",
+              "SIMULATION",
+              "TRAINING"
+            ]
+          },
+          "recordId": {
+            "type": "integer",
+            "description": "来源记录主键",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string",
+            "description": "来源名称"
+          },
+          "original": {
+            "$ref": "#/components/schemas/HistorySummary"
+          },
+          "current": {
+            "$ref": "#/components/schemas/HistorySummary"
+          },
+          "version": {
+            "type": "integer",
+            "description": "当前展示版本，原始为0"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/HistoryReference"
+          },
+          "corrections": {
+            "type": "array",
+            "description": "详情更正轨迹；列表返回空数组",
+            "items": {
+              "$ref": "#/components/schemas/HistoryCorrection"
+            }
+          }
+        }
+      },
+      "HistoryCorrectionRequest": {
+        "type": "object",
+        "description": "只追加摘要更正，不修改原记录/冻结资产，不重算",
+        "required": [
+          "version",
+          "changes",
+          "reason"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "description": "读取的当前展示版本",
+            "minimum": 0
+          },
+          "changes": {
+            "type": "object",
+            "description": "userName/userCode文本、occurredTime日期时间、领域status、适用的score/hours数值或null；其余拒绝",
+            "minProperties": 1,
+            "maxProperties": 6,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "reason": {
+            "type": "string",
+            "description": "非空更正依据",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        }
+      }
+    }
+  }
+}

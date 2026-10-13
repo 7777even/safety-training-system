@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sts.regulator.mapper.RegulatorAggregateMapper">
+
+  <sql id="regulatedOrg">
+    o.deleted = 0
+    AND o.status = 1
+    AND o.org_type IN ('ENTERPRISE', 'TRAINING_INSTITUTION')
+  </sql>
+
+  <select id="selectTenantAggregates" resultType="com.sts.regulator.vo.TenantAggregateItemVO">
+    SELECT o.organization_id AS organizationId,
+    o.org_code AS orgCode,
+    o.org_name AS orgName,
+    o.org_type AS orgType,
+    COALESCE(c.published_course_count, 0) AS publishedCourseCount,
+    COALESCE(p.running_plan_count, 0) AS runningPlanCount,
+    COALESCE(tp.participant_count, 0) AS participantCount,
+    COALESCE(tp.completed_participant_count, 0) AS completedParticipantCount
+    FROM sts_org_organization o
+    LEFT JOIN (
+    SELECT organization_id, COUNT(*) AS published_course_count
+    FROM sts_course_course
+    WHERE deleted = 0 AND status = 1 AND publish_status = 'PUBLISHED'
+    GROUP BY organization_id
+    ) c ON c.organization_id = o.organization_id
+    LEFT JOIN (
+    SELECT organization_id, COUNT(*) AS running_plan_count
+    FROM sts_training_plan
+    WHERE deleted = 0 AND status = 1 AND publish_status = 'RUNNING'
+    GROUP BY organization_id
+    ) p ON p.organization_id = o.organization_id
+    LEFT JOIN (
+    SELECT organization_id,
+    COUNT(*) AS participant_count,
+    SUM(CASE WHEN participant_status = 'COMPLETED' THEN 1 ELSE 0 END)
+    AS completed_participant_count
+    FROM sts_training_participant
+    WHERE deleted = 0
+    GROUP BY organization_id
+    ) tp ON tp.organization_id = o.organization_id
+    WHERE
+    <include refid="regulatedOrg"/>
+    ORDER BY o.organization_id
+  </select>
+
+  <select id="selectWorkbenchTotals" resultType="com.sts.regulator.vo.WorkbenchTotalsVO">
+    SELECT
+    (SELECT COUNT(*) FROM sts_org_organization o WHERE
+    <include refid="regulatedOrg"/>
+    AND o.org_type = 'ENTERPRISE')
+    AS enterpriseCount,
+    (SELECT COUNT(*) FROM sts_org_organization o WHERE
+    <include refid="regulatedOrg"/>
+    AND o.org_type = 'TRAINING_INSTITUTION')
+    AS trainingInstitutionCount,
+    (SELECT COUNT(*) FROM sts_training_plan p
+    INNER JOIN sts_org_organization o ON o.organization_id = p.organization_id
+    WHERE p.deleted = 0 AND p.status = 1 AND<include refid="regulatedOrg"/>)
+    AS planTotalCount,
+    (SELECT COUNT(*) FROM sts_training_plan p
+    INNER JOIN sts_org_organization o ON o.organization_id = p.organization_id
+    WHERE p.deleted = 0 AND p.status = 1 AND p.publish_status = 'RUNNING' AND<include refid="regulatedOrg"/>)
+    AS runningPlanCount,
+    (SELECT COUNT(*) FROM sts_training_plan p
+    INNER JOIN sts_org_organization o ON o.organization_id = p.organization_id
+    WHERE p.deleted = 0 AND p.status = 1 AND p.publish_status = 'ENDED' AND<include refid="regulatedOrg"/>)
+    AS endedPlanCount,
+    (SELECT COUNT(*) FROM sts_training_participant tp
+    INNER JOIN sts_org_organization o ON o.organization_id = tp.organization_id
+    WHERE tp.deleted = 0 AND<include refid="regulatedOrg"/>)
+    AS participantCount,
+    (SELECT COUNT(*) FROM sts_training_participant tp
+    INNER JOIN sts_org_organization o ON o.organization_id = tp.organization_id
+    WHERE tp.deleted = 0 AND tp.participant_status = 'COMPLETED' AND<include refid="regulatedOrg"/>)
+    AS completedParticipantCount
+  </select>
+
+  <select id="selectInstitutionSummaries" resultType="com.sts.regulator.vo.InstitutionSummaryVO">
+    SELECT o.organization_id AS organizationId,
+    o.org_code AS orgCode,
+    o.org_name AS orgName,
+    o.org_type AS orgType,
+    COALESCE(p.plan_count, 0) AS planCount,
+    COALESCE(tp.participant_count, 0) AS participantCount
+    FROM sts_org_organization o
+    LEFT JOIN (
+    SELECT organization_id, COUNT(*) AS plan_count
+    FROM sts_training_plan
+    WHERE deleted = 0 AND status = 1
+    GROUP BY organization_id
+    ) p ON p.organization_id = o.organization_id
+    LEFT JOIN (
+    SELECT organization_id, COUNT(*) AS participant_count
+    FROM sts_training_participant
+    WHERE deleted = 0
+    GROUP BY organization_id
+    ) tp ON tp.organization_id = o.organization_id
+    WHERE
+    <include refid="regulatedOrg"/>
+    ORDER BY o.org_name
+  </select>
+
+  <select id="selectTrainingTypeDistribution" resultType="com.sts.regulator.vo.TrainingTypeShareVO">
+    SELECT t.training_type_id AS trainingTypeId,
+    t.type_name AS typeName,
+    COUNT(*) AS planCount
+    FROM sts_training_plan p
+    INNER JOIN sts_org_organization o ON o.organization_id = p.organization_id
+    INNER JOIN sts_training_type t ON t.training_type_id = p.training_type_id AND t.deleted = 0
+    WHERE p.deleted = 0 AND p.status = 1 AND
+    <include refid="regulatedOrg"/>
+    GROUP BY t.training_type_id, t.type_name
+    ORDER BY planCount DESC, t.training_type_id
+  </select>
+
+  <select id="selectSpecialOperationStats" resultType="com.sts.regulator.vo.SpecialOperationStatsVO">
+    SELECT COALESCE(COUNT(DISTINCT p.training_plan_id), 0) AS planCount,
+    COALESCE(COUNT(tp.training_participant_id), 0) AS participantCount,
+    COALESCE(SUM(CASE WHEN tp.participant_status = 'COMPLETED' THEN 1 ELSE 0 END), 0) AS completedParticipantCount
+    FROM sts_training_plan p
+    INNER JOIN sts_org_organization o ON o.organization_id = p.organization_id
+    INNER JOIN sts_training_type t ON t.training_type_id = p.training_type_id AND t.deleted = 0
+    LEFT JOIN sts_training_participant tp ON tp.training_plan_id = p.training_plan_id AND tp.deleted = 0
+    WHERE p.deleted = 0 AND p.status = 1
+    AND t.tag = '特种作业'
+    AND
+    <include refid="regulatedOrg"/>
+  </select>
+
+  <select id="selectUnreadWarningCount" resultType="long">
+    SELECT COUNT(*)
+    FROM sts_regulation_warning
+    WHERE deleted = 0 AND warning_status = 'UNREAD'
+  </select>
+
+  <sql id="learningMetrics">
+    SELECT
+    (SELECT COUNT(*) FROM us_sys_user u
+    INNER JOIN sts_org_organization o ON o.organization_id = u.organization_id
+    WHERE u.deleted = 0 AND u.status = 1 AND IFNULL(u.member_type, '') &lt;&gt; 'REGULATOR'
+    AND
+    <include refid="regulatedOrg"/>
+    <if test="organizationId != null">AND u.organization_id = #{organizationId}</if>)
+    AS employeeAccountCount,
+    (SELECT COUNT(*) FROM sts_course_enrollment e
+    INNER JOIN sts_course_offering off ON off.course_offering_id = e.course_offering_id AND off.deleted = 0
+    INNER JOIN sts_org_organization o ON o.organization_id = e.organization_id
+    WHERE e.deleted = 0 AND
+    <include refid="regulatedOrg"/>
+    <if test="organizationId != null">AND e.organization_id = #{organizationId}</if>)
+    AS classSessionCount,
+    (SELECT COUNT(DISTINCT e.user_id) FROM sts_course_enrollment e
+    INNER JOIN sts_course_offering off ON off.course_offering_id = e.course_offering_id AND off.deleted = 0
+    INNER JOIN sts_org_organization o ON o.organization_id = e.organization_id
+    WHERE e.deleted = 0 AND
+    <include refid="regulatedOrg"/>
+    <if test="organizationId != null">AND e.organization_id = #{organizationId}</if>)
+    AS classLearnerCount,
+    (SELECT COUNT(DISTINCT e.course_offering_id) FROM sts_course_enrollment e
+    INNER JOIN sts_course_offering off ON off.course_offering_id = e.course_offering_id AND off.deleted = 0
+    INNER JOIN sts_org_organization o ON o.organization_id = e.organization_id
+    WHERE e.deleted = 0 AND
+    <include refid="regulatedOrg"/>
+    <if test="organizationId != null">AND e.organization_id = #{organizationId}</if>)
+    AS participatingOfferingCount
+  </sql>
+
+  <select id="selectLearningStats" resultType="com.sts.regulator.vo.LearningStatsVO">
+    SELECT
+    #{organizationId} AS organizationId,
+    metrics.employeeAccountCount AS employeeAccountCount,
+    metrics.classSessionCount AS classSessionCount,
+    metrics.classLearnerCount AS classLearnerCount,
+    metrics.participatingOfferingCount AS participatingOfferingCount,
+    CASE WHEN metrics.classLearnerCount = 0 THEN 0
+    ELSE metrics.classSessionCount / metrics.classLearnerCount END AS avgSessionsPerLearner,
+    CASE WHEN metrics.employeeAccountCount = 0 THEN 0
+    ELSE metrics.classLearnerCount / metrics.employeeAccountCount END AS participationRate
+    FROM (<include refid="learningMetrics"/>) metrics
+  </select>
+
+  <select id="selectLearningStatsByInstitution" resultType="com.sts.regulator.vo.LearningStatsVO">
+    SELECT o.organization_id AS organizationId,
+    o.org_code AS orgCode,
+    o.org_name AS orgName,
+    o.org_type AS orgType,
+    COALESCE(emp.cnt, 0) AS employeeAccountCount,
+    COALESCE(enr.session_count, 0) AS classSessionCount,
+    COALESCE(enr.learner_count, 0) AS classLearnerCount,
+    COALESCE(enr.offering_count, 0) AS participatingOfferingCount,
+    CASE WHEN COALESCE(enr.learner_count, 0) = 0 THEN 0
+    ELSE enr.session_count / enr.learner_count END AS avgSessionsPerLearner,
+    CASE WHEN COALESCE(emp.cnt, 0) = 0 THEN 0
+    ELSE enr.learner_count / emp.cnt END AS participationRate
+    FROM sts_org_organization o
+    LEFT JOIN (
+    SELECT organization_id, COUNT(*) AS cnt
+    FROM us_sys_user
+    WHERE deleted = 0 AND status = 1 AND IFNULL(member_type, '') &lt;&gt; 'REGULATOR'
+    GROUP BY organization_id
+    ) emp ON emp.organization_id = o.organization_id
+    LEFT JOIN (
+    SELECT e.organization_id,
+    COUNT(*) AS session_count,
+    COUNT(DISTINCT e.user_id) AS learner_count,
+    COUNT(DISTINCT e.course_offering_id) AS offering_count
+    FROM sts_course_enrollment e
+    INNER JOIN sts_course_offering off ON off.course_offering_id = e.course_offering_id AND off.deleted = 0
+    WHERE e.deleted = 0
+    GROUP BY e.organization_id
+    ) enr ON enr.organization_id = o.organization_id
+    WHERE
+    <include refid="regulatedOrg"/>
+    ORDER BY o.org_name
+  </select>
+
+  <select id="selectLearningLearners" resultType="com.sts.regulator.vo.LearningLearnerRowVO">
+    SELECT e.user_id AS userId,
+    u.user_name AS userName,
+    u.user_code AS userCode,
+    e.organization_id AS organizationId,
+    COUNT(DISTINCT e.course_offering_id) AS offeringCount
+    FROM sts_course_enrollment e
+    INNER JOIN sts_course_offering off ON off.course_offering_id = e.course_offering_id AND off.deleted = 0
+    INNER JOIN sts_org_organization o ON o.organization_id = e.organization_id
+    INNER JOIN us_sys_user u ON u.user_id = e.user_id AND u.deleted = 0
+    WHERE e.deleted = 0 AND
+    <include refid="regulatedOrg"/>
+    <if test="organizationId != null">AND e.organization_id = #{organizationId}</if>
+    GROUP BY e.user_id, u.user_name, u.user_code, e.organization_id
+    ORDER BY offeringCount DESC, e.user_id
+  </select>
+
+  <select id="selectLearningOfferings" resultType="com.sts.regulator.vo.LearningOfferingRowVO">
+    SELECT off.course_offering_id AS courseOfferingId,
+    off.offering_name AS offeringName,
+    off.organization_id AS organizationId,
+    COUNT(DISTINCT e.user_id) AS learnerCount
+    FROM sts_course_enrollment e
+    INNER JOIN sts_course_offering off ON off.course_offering_id = e.course_offering_id AND off.deleted = 0
+    INNER JOIN sts_org_organization o ON o.organization_id = e.organization_id
+    WHERE e.deleted = 0 AND
+    <include refid="regulatedOrg"/>
+    <if test="organizationId != null">AND e.organization_id = #{organizationId}</if>
+    GROUP BY off.course_offering_id, off.offering_name, off.organization_id
+    ORDER BY learnerCount DESC, off.course_offering_id
+  </select>
+</mapper>

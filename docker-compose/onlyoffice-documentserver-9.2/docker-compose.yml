@@ -1,0 +1,48 @@
+services:
+  onlyoffice-documentserver:
+    image: onlyoffice/documentserver:9.2
+    container_name: onlyoffice-ds
+    restart: unless-stopped
+    privileged: true
+    init: true
+    ulimits:
+      nproc:
+        soft: 65535
+        hard: 65535
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "28090:80"
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        /var/www/onlyoffice/documentserver/npm/json \
+          -I -f /etc/onlyoffice/documentserver/default.json \
+          -e 'this.FileConverter.converter.maxDownloadBytes = 268435456'
+        exec /app/ds/run-document-server.sh
+    environment:
+      JWT_ENABLED: "true"
+      JWT_SECRET: "${ONLYOFFICE_JWT_SECRET:-9911cef3839b6a055dc983f4d509e8798c99b493f9f0b69a8a103d0a1a08759b}"
+      JWT_HEADER: AuthorizationJwt
+    volumes:
+      - onlyoffice_data:/var/www/onlyoffice/Data
+      - onlyoffice_log:/var/log/onlyoffice
+      - onlyoffice_lib:/var/lib/onlyoffice
+      - onlyoffice_postgresql:/var/lib/postgresql
+      - ./fonts:/usr/share/fonts/truetype/custom:ro
+      - ./fontconfig-local.conf:/etc/fonts/local.conf:ro
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost/healthcheck" ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+volumes:
+  onlyoffice_data:
+  onlyoffice_log:
+  onlyoffice_lib:
+  onlyoffice_postgresql:

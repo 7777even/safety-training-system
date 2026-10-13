@@ -1,0 +1,76 @@
+# 本机开发环境；通过 SPRING_PROFILES_ACTIVE=local 或 --spring.profiles.active=local 启用。
+spring:
+  flyway:
+    # 本机开发启动同步已确认的增量结构，避免接口使用尚未创建的表。
+    enabled: true
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:public}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        register-enabled: true
+        enabled: false
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:8045}/${MYSQL_DATABASE:sts}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useAffectedRows=true
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:ss}
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      pool-name: sts-service-admin-pool
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6380}
+      password: ${REDIS_PASSWORD:ss}
+      database: ${REDIS_DATABASE:0}
+      timeout: 10000ms
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+storage:
+  type: ${STORAGE_TYPE:minio}
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:19000}
+    access-key: ${MINIO_ACCESS_KEY:ui9l8xhvhP4i4ou2N8OD}
+    secret-key: ${MINIO_SECRET_KEY:7B8xTPmnNvOztu067ejTVq2NxW2abJHd37pQObI8}
+    bucket: ${MINIO_BUCKET:sts-dev-private}
+    region: ${MINIO_REGION:cn-south-1}
+    auto-create-bucket: ${MINIO_AUTO_CREATE_BUCKET:false}
+    multipart-part-size: ${MINIO_MULTIPART_PART_SIZE:10485760}
+    multipart-expire-hours: ${MINIO_MULTIPART_EXPIRE_HOURS:24}
+    cleanup-interval-ms: ${MINIO_CLEANUP_INTERVAL_MS:3600000}
+
+sts:
+  transcode:
+    # 默认走真实 FFmpeg 转码；stub 只产出空结果（素材会 SUCCEEDED 但零派生文件，
+    # 播放接口因此回退到源文件）。ffmpeg 要求 storage.type=minio（需要 S3StorageGateway
+    # 拉源文件、回传产物），且 ffmpeg-path/ffprobe-path 指向真实可执行文件；
+    # 不满足时用 TRANSCODE_PROVIDER=stub 显式降级
+    provider: ${TRANSCODE_PROVIDER:ffmpeg}
+    concurrency: ${TRANSCODE_CONCURRENCY:2}
+    running-timeout-minutes: ${TRANSCODE_RUNNING_TIMEOUT_MINUTES:30}
+    poll-interval-ms: ${TRANSCODE_POLL_INTERVAL_MS:3000}
+    timeout-scan-interval-ms: ${TRANSCODE_TIMEOUT_SCAN_INTERVAL_MS:60000}
+    ffmpeg-path: ${FFMPEG_PATH:/usr/bin/ffmpeg}
+    ffprobe-path: ${FFPROBE_PATH:/usr/bin/ffprobe}
+    qpdf-path: ${QPDF_PATH:/usr/bin/qpdf}
+    work-dir: ${TRANSCODE_WORK_DIR:/tmp/sts-transcode}
+    process-timeout-minutes: ${TRANSCODE_PROCESS_TIMEOUT_MINUTES:20}
+    pdf-linearize-timeout-seconds: ${PDF_LINEARIZE_TIMEOUT_SECONDS:120}
+    document-provider: ${DOCUMENT_TRANSCODE_PROVIDER:onlyoffice}
+    onlyoffice:
+      base-url: ${ONLYOFFICE_BASE_URL:http://127.0.0.1:28090}
+      jwt-secret: ${ONLYOFFICE_JWT_SECRET:9911cef3839b6a055dc983f4d509e8798c99b493f9f0b69a8a103d0a1a08759b}
+      internal-source-base-url: ${ONLYOFFICE_INTERNAL_SOURCE_BASE_URL:http://127.0.0.1:20080/api}
+      allowed-download-hosts: ${ONLYOFFICE_ALLOWED_DOWNLOAD_HOSTS:127.0.0.1}
+      max-output-bytes: ${ONLYOFFICE_MAX_OUTPUT_BYTES:209715200}
+      timeout-seconds: ${ONLYOFFICE_TIMEOUT_SECONDS:120}

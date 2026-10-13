@@ -1,0 +1,1368 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "素材模块 API 契约",
+    "version": "1.0.0",
+    "description": "STS 素材域 OpenAPI，覆盖素材 CRUD、异步转码任务调度、处理状态机与删除保护。鉴权：Authorization Bearer {token}；权限码见各 operation 的 x-permission。"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "sts-service-admin context path"
+    }
+  ],
+  "paths": {
+    "/api/asset/assets": {
+      "get": {
+        "summary": "分页查询素材",
+        "description": "权限：`asset:asset:list`。",
+        "tags": [
+          "AssetController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "asset:asset:list",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "query.assetName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query.assetType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DOCUMENT",
+                "IMAGE",
+                "AUDIO",
+                "VIDEO",
+                "RICH_TEXT",
+                "LINK",
+                "LIVE"
+              ]
+            }
+          },
+          {
+            "name": "query.processStatus",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "UPLOADED",
+                "PROCESSING",
+                "SUCCEEDED",
+                "FAILED"
+              ]
+            }
+          },
+          {
+            "name": "query.status",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PageResultAssetListItemVO"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "list": [
+                      {
+                        "assetId": 20,
+                        "assetCode": "AST-VIDEO-001",
+                        "assetName": "消防安全课件",
+                        "assetType": "VIDEO",
+                        "processStatus": "READY",
+                        "status": 1
+                      }
+                    ],
+                    "total": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "summary": "创建素材",
+        "description": "权限：`asset:asset:add`。UPLOAD 须有效 fileInfoId；EXTERNAL 须 http(s) URL；CREATED 须 richContent。UPLOAD 原始文件按类型限制：音视频不超过 2GB、文档不超过 512MB、图片不超过 16MB，以后端已登记的 fileInfo 大小为准。AUDIO、VIDEO、原生 PDF 及需转换的 Office 文档只创建 PENDING 异步任务，接口返回时素材保持 UPLOADED；所有 PDF 预览均经 qpdf 线性化后才可用。错误码：6021 校验/编码冲突；6025 原始文件超过类型上限。",
+        "tags": [
+          "AssetController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "asset:asset:add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetCreateRequest"
+              },
+              "example": {
+                "assetCode": "AST-VIDEO-001",
+                "assetName": "消防安全课件",
+                "assetType": "VIDEO",
+                "sourceType": "UPLOAD",
+                "fileInfoId": 200,
+                "mimeType": "video/mp4",
+                "fileSize": 104857600,
+                "durationSeconds": 1800,
+                "checksum": "e3b0c44298fc1c149afbf4c8996fb924",
+                "status": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功；data 为 assetId。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "integer",
+                          "format": "int64"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": 20
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          }
+        }
+      }
+    },
+    "/api/asset/assets/{assetId}": {
+      "get": {
+        "summary": "查询素材详情",
+        "description": "权限：`asset:asset:list`。错误码：6011。",
+        "tags": [
+          "AssetController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "asset:asset:list",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AssetVO"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "assetId": 20,
+                    "assetCode": "AST-VIDEO-001",
+                    "assetName": "消防安全课件",
+                    "assetType": "VIDEO",
+                    "sourceType": "FILE",
+                    "fileInfoId": 200,
+                    "externalUrl": null,
+                    "richContent": null,
+                    "mimeType": "video/mp4",
+                    "fileSize": 104857600,
+                    "pageCount": null,
+                    "durationSeconds": 1800,
+                    "checksum": "e3b0c44298fc1c149afbf4c8996fb924",
+                    "processStatus": "READY",
+                    "status": 1,
+                    "version": 2
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "put": {
+        "summary": "更新素材",
+        "description": "权限：`asset:asset:edit`。PROCESSING 状态仅可改名称；不可变更 assetType/sourceType/fileInfoId。错误码：6011、6022、2040。",
+        "tags": [
+          "AssetController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "asset:asset:edit",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetUpdateRequest"
+              },
+              "example": {
+                "assetName": "消防安全课件（修订）",
+                "externalUrl": null,
+                "richContent": null,
+                "mimeType": "video/mp4",
+                "fileSize": 104857600,
+                "pageCount": null,
+                "durationSeconds": 1800,
+                "checksum": "e3b0c44298fc1c149afbf4c8996fb924",
+                "status": 1,
+                "version": 2
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEnvelope"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除素材",
+        "description": "权限：`asset:asset:delete`。PROCESSING 不可删；被课程引用不可删。错误码：6011、6022、6023。",
+        "tags": [
+          "AssetController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "asset:asset:delete",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEnvelope"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          }
+        }
+      }
+    },
+    "/api/asset/assets/{assetId}/retry-transcode": {
+      "post": {
+        "summary": "重试转码",
+        "description": "权限：`asset:asset:edit`。仅 FAILED 状态且存在失败任务的 AUDIO、VIDEO 或需转换文档可人工重试；调用后任务重置为 PENDING，由调度器异步执行。错误码：6011、6022、6024。",
+        "tags": [
+          "AssetController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "asset:asset:edit",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEnvelope"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/api/asset/assets/{assetId}/play-info": {
+      "get": {
+        "summary": "获取素材播放预览信息",
+        "description": "权限：`asset:asset:list`。仅返回当前租户且处理成功的素材；地址为受控后端代理，不暴露 MinIO 信息。format 为闭合枚举，取值含义见 AssetPlayInfoVO.format。已转码视频与已转码音频均为 `hls`（音频无封面）。外链（EXTERNAL）与富文本（CREATED）素材没有可播文件，返回 404。错误码：6011。",
+        "tags": [
+          "AssetMediaController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "asset:asset:list",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "description": "素材 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AssetPlayInfoVO"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "assetId": 20,
+                    "format": "hls",
+                    "url": "/api/asset/files/20/hls/9/index.m3u8",
+                    "coverUrl": "/api/asset/files/20/301",
+                    "durationSeconds": 120,
+                    "pageCount": null
+                  }
+                },
+                "examples": {
+                  "videoHls": {
+                    "summary": "已转码视频",
+                    "value": {
+                      "code": 0,
+                      "message": "success",
+                      "data": {
+                        "assetId": 20,
+                        "format": "hls",
+                        "url": "/api/asset/files/20/hls/9/index.m3u8",
+                        "coverUrl": "/api/asset/files/20/301",
+                        "durationSeconds": 120,
+                        "pageCount": null
+                      }
+                    }
+                  },
+                  "audioHls": {
+                    "summary": "已转码音频（无封面）",
+                    "value": {
+                      "code": 0,
+                      "message": "success",
+                      "data": {
+                        "assetId": 21,
+                        "format": "hls",
+                        "url": "/api/asset/files/21/hls/10/index.m3u8",
+                        "coverUrl": null,
+                        "durationSeconds": 186,
+                        "pageCount": null
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/api/asset/files/{assetId}/{fileInfoId}": {
+      "get": {
+        "summary": "读取受控素材文件",
+        "description": "权限：`asset:asset:list`。校验素材机构归属和文件关联；支持单一 bytes Range。完整请求 200，合法区间 206，非法、多区间或越界 416。",
+        "tags": [
+          "AssetMediaController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "asset:asset:list",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "description": "素材 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 20
+            }
+          },
+          {
+            "name": "fileInfoId",
+            "in": "path",
+            "required": true,
+            "description": "与素材关联的源文件或派生文件 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 301
+            }
+          },
+          {
+            "name": "Range",
+            "in": "header",
+            "required": false,
+            "description": "单一字节区间。",
+            "schema": {
+              "type": "string",
+              "example": "bytes=0-1023"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "完整文件字节流。"
+          },
+          "206": {
+            "description": "区间文件字节流。"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "416": {
+            "description": "Range 非法、多区间或越界。"
+          }
+        }
+      }
+    },
+    "/api/asset/files/{assetId}/hls/{jobId}/{name}": {
+      "get": {
+        "summary": "读取受控 HLS 文件",
+        "description": "权限：`asset:asset:list`。仅允许已登记 HLS 派生目录内的 index.m3u8 或规范 TS 分片名，使用与素材相同的机构权限边界。视频与音频转码成功后的 HLS 均走本接口。",
+        "tags": [
+          "AssetMediaController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "asset:asset:list",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "description": "素材 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 20
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "description": "生成该 HLS 的转码任务 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 9
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "HLS 清单或分片文件名。",
+            "schema": {
+              "type": "string",
+              "example": "segment-00000.ts"
+            }
+          },
+          {
+            "name": "Range",
+            "in": "header",
+            "required": false,
+            "description": "单一字节区间。",
+            "schema": {
+              "type": "string",
+              "example": "bytes=0-1023"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "完整 HLS 文件。"
+          },
+          "206": {
+            "description": "区间 HLS 文件。"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "416": {
+            "description": "Range 非法、多区间或越界。"
+          }
+        }
+      }
+    },
+    "/api/asset/transcode-jobs": {
+      "get": {
+        "summary": "查询转码任务列表",
+        "description": "权限：`asset:job:list`。可选按 assetId 和 jobStatus 过滤。",
+        "tags": [
+          "AssetController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "asset:job:list",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "query",
+            "required": false,
+            "description": "素材 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 20
+            }
+          },
+          {
+            "name": "jobStatus",
+            "in": "query",
+            "required": false,
+            "description": "任务状态。",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "RUNNING",
+                "SUCCEEDED",
+                "FAILED"
+              ],
+              "example": "FAILED"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AssetTranscodeJobListItemVO"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": [
+                    {
+                      "transcodeJobId": 1,
+                      "assetId": 20,
+                      "jobType": "VIDEO_TRANSCODE",
+                      "jobStatus": "SUCCEEDED",
+                      "startedTime": "2026-07-18T10:00:00",
+                      "finishedTime": "2026-07-18T10:05:00",
+                      "retryCount": 0,
+                      "failureCode": null,
+                      "failureReason": null,
+                      "createTime": "2026-07-18T09:59:00"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "UUID",
+        "description": "受保护接口须在 Authorization 请求头中传递 Bearer {token}。"
+      }
+    },
+    "responses": {
+      "ValidationError": {
+        "description": "请求参数校验失败。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 1001,
+              "message": "参数校验失败",
+              "data": null
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "未登录或登录已失效。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 1002,
+              "message": "未登录",
+              "data": null
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "缺少接口所需权限。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 1003,
+              "message": "权限不足",
+              "data": null
+            }
+          }
+        }
+      },
+      "NotFoundError": {
+        "description": "素材、任务或关联文件不存在，或不属于当前机构。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 6011,
+              "message": "素材或媒体文件不存在",
+              "data": null
+            }
+          }
+        }
+      },
+      "ConflictError": {
+        "description": "素材状态、版本或引用关系冲突。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 6023,
+              "message": "素材仍被课程引用，不可删除",
+              "data": null
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ResultEnvelope": {
+        "type": "object",
+        "description": "所有非 ResponseEntity 的 Controller 返回值均由 ResultEasyTransAdvice 自动包装为本结构。",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码；成功固定为 0。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息；成功固定为 success。",
+            "example": "success"
+          },
+          "data": {
+            "description": "业务数据；具体类型由各接口响应的 data 字段定义。",
+            "example": {}
+          }
+        },
+        "example": {
+          "code": 0,
+          "message": "success",
+          "data": {}
+        }
+      },
+      "PageResultAssetListItemVO": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页记录",
+            "items": {
+              "$ref": "#/components/schemas/AssetListItemVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "符合筛选条件的总记录数"
+          }
+        }
+      },
+      "AssetCreateRequest": {
+        "type": "object",
+        "required": [
+          "assetCode",
+          "assetName",
+          "assetType",
+          "sourceType"
+        ],
+        "properties": {
+          "assetCode": {
+            "type": "string",
+            "description": "素材编码",
+            "maxLength": 64
+          },
+          "assetName": {
+            "type": "string",
+            "description": "素材名称",
+            "maxLength": 255
+          },
+          "assetType": {
+            "type": "string",
+            "description": "素材类型。UPLOAD 原始文件上限：AUDIO/VIDEO 2GB、DOCUMENT 512MB、IMAGE 16MB。",
+            "enum": [
+              "DOCUMENT",
+              "IMAGE",
+              "AUDIO",
+              "VIDEO",
+              "RICH_TEXT",
+              "LINK",
+              "LIVE"
+            ]
+          },
+          "sourceType": {
+            "type": "string",
+            "description": "来源类型",
+            "enum": [
+              "UPLOAD",
+              "CREATED",
+              "EXTERNAL"
+            ]
+          },
+          "fileInfoId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "UPLOAD 来源必填"
+          },
+          "externalUrl": {
+            "type": "string",
+            "maxLength": 1000,
+            "nullable": true,
+            "description": "EXTERNAL 来源必填"
+          },
+          "richContent": {
+            "type": "string",
+            "nullable": true,
+            "description": "CREATED 来源必填"
+          },
+          "mimeType": {
+            "type": "string",
+            "description": "MIME 类型",
+            "nullable": true
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64",
+            "description": "原始文件大小字节数；音视频不超过 2GB，文档不超过 512MB，图片不超过 16MB。创建素材时以后端 fileInfo 实际大小校验。",
+            "nullable": true
+          },
+          "pageCount": {
+            "type": "integer",
+            "description": "页数",
+            "nullable": true
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "description": "时长秒数",
+            "nullable": true
+          },
+          "checksum": {
+            "type": "string",
+            "description": "文件校验值",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态",
+            "default": 1
+          }
+        }
+      },
+      "AssetUpdateRequest": {
+        "type": "object",
+        "required": [
+          "assetName",
+          "status",
+          "version"
+        ],
+        "properties": {
+          "assetName": {
+            "type": "string",
+            "description": "素材名称",
+            "maxLength": 255
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号"
+          }
+        }
+      },
+      "AssetListItemVO": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "素材 ID"
+          },
+          "assetCode": {
+            "type": "string",
+            "description": "素材编码"
+          },
+          "assetName": {
+            "type": "string",
+            "description": "素材名称"
+          },
+          "assetType": {
+            "type": "string",
+            "description": "素材类型"
+          },
+          "processStatus": {
+            "type": "string",
+            "description": "处理状态"
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态"
+          }
+        }
+      },
+      "AssetPlayInfoVO": {
+        "type": "object",
+        "description": "素材播放或预览信息，所有地址均为受控后端代理。",
+        "required": [
+          "assetId",
+          "format",
+          "url"
+        ],
+        "properties": {
+          "assetId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "素材 ID。",
+            "example": 20
+          },
+          "format": {
+            "type": "string",
+            "description": "播放预览格式标识，表达「返回的 url 该用什么组件渲染」，取值为闭合枚举：\n`hls` 视频或音频已转码为 HLS，用 hls.js（或 Safari 原生 HLS）按片播放，url 指向受控 m3u8；\n`pdf` 文档预览已转为线性化 PDF，用 pdf.js 翻页；\n`excel` xls/xlsx 不转码，用前端表格组件（vue-office）直显；\n`image` 图片，用 <img> 展示；\n`original` 无可用派生产物的兜底，按原文件直链处理。\n注意：视频/音频/Word/PDF 正常情况下不会返回 `original`，出现即表示转码未成功或派生丢失，可据此监控。\n外链与富文本没有可播文件，调用本接口返回 404（业务码 6011）。",
+            "enum": [
+              "hls",
+              "pdf",
+              "excel",
+              "image",
+              "original"
+            ],
+            "example": "hls"
+          },
+          "url": {
+            "type": "string",
+            "description": "主文件受控访问路径。",
+            "example": "/api/asset/files/20/hls/9/index.m3u8"
+          },
+          "coverUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "封面受控访问路径。",
+            "example": "/api/asset/files/20/301"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "nullable": true,
+            "description": "音视频时长秒数。",
+            "example": 120
+          },
+          "pageCount": {
+            "type": "integer",
+            "nullable": true,
+            "description": "文档页数。",
+            "example": 12
+          }
+        }
+      },
+      "AssetVO": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "素材 ID"
+          },
+          "assetCode": {
+            "type": "string",
+            "description": "素材编码"
+          },
+          "assetName": {
+            "type": "string",
+            "description": "素材名称"
+          },
+          "assetType": {
+            "type": "string",
+            "description": "素材类型"
+          },
+          "sourceType": {
+            "type": "string",
+            "description": "来源类型"
+          },
+          "fileInfoId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "文件信息 ID",
+            "nullable": true
+          },
+          "externalUrl": {
+            "type": "string",
+            "description": "外部访问地址",
+            "nullable": true
+          },
+          "richContent": {
+            "type": "string",
+            "description": "富文本内容",
+            "nullable": true
+          },
+          "mimeType": {
+            "type": "string",
+            "description": "MIME 类型",
+            "nullable": true
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64",
+            "description": "原始文件大小字节数；音视频不超过 2GB，文档不超过 512MB，图片不超过 16MB。创建素材时以后端 fileInfo 实际大小校验。",
+            "nullable": true
+          },
+          "pageCount": {
+            "type": "integer",
+            "description": "页数",
+            "nullable": true
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "description": "时长秒数",
+            "nullable": true
+          },
+          "checksum": {
+            "type": "string",
+            "description": "文件校验值",
+            "nullable": true
+          },
+          "processStatus": {
+            "type": "string",
+            "description": "处理状态"
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态"
+          },
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号"
+          }
+        }
+      },
+      "AssetTranscodeJobListItemVO": {
+        "type": "object",
+        "properties": {
+          "transcodeJobId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "转码任务 ID"
+          },
+          "assetId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "素材 ID"
+          },
+          "jobType": {
+            "type": "string",
+            "description": "转码任务类型",
+            "enum": [
+              "AUDIO_TRANSCODE",
+              "VIDEO_TRANSCODE"
+            ]
+          },
+          "jobStatus": {
+            "type": "string",
+            "description": "转码任务状态",
+            "enum": [
+              "PENDING",
+              "RUNNING",
+              "SUCCEEDED",
+              "FAILED"
+            ]
+          },
+          "startedTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "开始时间",
+            "nullable": true
+          },
+          "finishedTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "完成时间",
+            "nullable": true
+          },
+          "retryCount": {
+            "type": "integer",
+            "description": "重试次数"
+          },
+          "failureCode": {
+            "type": "string",
+            "description": "失败编码；PROVIDER_DISABLED 表示当前环境未启用真实转码服务，TRANSCODE_ERROR 表示已启用的转码链路执行异常",
+            "nullable": true,
+            "example": "PROVIDER_DISABLED"
+          },
+          "failureReason": {
+            "type": "string",
+            "description": "失败原因",
+            "nullable": true,
+            "example": "当前环境未启用真实转码服务，任务未执行"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "创建时间"
+          }
+        }
+      },
+      "AssetBusinessErrorCodes": {
+        "type": "object",
+        "description": "素材域业务错误码（6011-6024 段；供联调参考）。",
+        "properties": {
+          "6011": {
+            "type": "string",
+            "example": "素材不存在"
+          },
+          "6012": {
+            "type": "string",
+            "example": "素材尚未处理完成，暂不可引用"
+          },
+          "6021": {
+            "type": "string",
+            "example": "校验失败或素材编码已存在"
+          },
+          "6022": {
+            "type": "string",
+            "example": "当前素材状态不允许该操作"
+          },
+          "6023": {
+            "type": "string",
+            "example": "素材仍被课程引用，不可删除"
+          },
+          "6024": {
+            "type": "string",
+            "example": "转码任务不存在"
+          },
+          "6025": {
+            "type": "string",
+            "example": "图片原始文件不能超过 16MB"
+          }
+        }
+      },
+      "PageResult": {
+        "type": "object",
+        "description": "分页接口的 data 结构。",
+        "required": [
+          "list",
+          "total"
+        ],
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页记录。",
+            "items": {}
+          },
+          "total": {
+            "type": "integer",
+            "description": "符合筛选条件的总记录数。",
+            "example": 1,
+            "format": "int64"
+          }
+        },
+        "example": {
+          "list": [],
+          "total": 0
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "AssetController",
+      "description": "素材库与转码"
+    },
+    {
+      "name": "AssetMediaController",
+      "description": "素材受控播放、预览与文件访问"
+    }
+  ]
+}

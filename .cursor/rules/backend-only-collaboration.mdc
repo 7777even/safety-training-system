@@ -1,0 +1,44 @@
+---
+description: lims 只写后端；设计/任务不含前端；交付 OpenAPI 给前端
+alwaysApply: true
+---
+
+# lims 后端协作边界（强制）
+
+本仓库是前后端 monorepo，**含有** `frontend/`。
+当 `git config user.name` 为 **`lims`** 时，Agent 按**纯后端协作方**执行：不关注、不实施、不规划前端。
+
+判定：改代码或写 OpenSpec 前执行 `git config user.name`；值为 `lims` 即适用。
+
+## 交付物（lims）
+
+后端闭环即可视为本协作方交付完成：
+
+1. migration / Entity / Service / API / 测试
+2. 按规范写好的 `docs/api/*.openapi.json`（交给前端对接）
+3. 必要 OpenSpec / QA / 进度回填（仅后端范围）
+
+**不需要**改 Mock、关 `VITE_USE_API_MOCK`、写页面、做前后端联调或学员端。
+
+## 设计与任务（强制）
+
+为 lims 编写或执行的 `proposal.md` / `design.md` / `tasks.md` / 进度表行：
+
+- **禁止**把 PC/移动页面、Mock、前端联调、UI 验收列为 lims 的 Task 或验收标准
+- Task「前后端影响」写：`仅后端；前端以 OpenAPI 为准另开`
+- Non-goals / 非目标明确排除前端实施
+- 路线图里的 COURSE-06/07/08 等前端项：进度表可保留给前端协作方，**不得**写入 lims 的实施 Change，也不得作为 lims 阻塞项
+
+## 允许改动的目录
+
+- `backend/`、`database/`
+- `docs/api/`、与后端相关的 `docs/architecture/`
+- `openspec/`、`engineering/`（后端任务相关）
+
+## 禁止
+
+- 修改 `frontend/` 下任意文件
+- 在设计/任务里安排前端工作给 lims
+- 因「里程碑要前端关环」而扩大 lims 范围或催前端实现细节
+
+非 `lims` 身份不适用本条（仍遵守其余项目规则）。

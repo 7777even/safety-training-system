@@ -1,0 +1,1789 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "试卷 API 契约",
+    "version": "1.0.0",
+    "description": "STS M2 PAPER OpenAPI：FIXED/RANDOM/CUSTOM 组卷、预览、发布固化快照。错误码 6500-6599。 使用 Bearer Token 鉴权，按 Controller tags 分组阅读。"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "sts-service-admin context path"
+    }
+  ],
+  "tags": [
+    {
+      "name": "PaperController",
+      "description": "试卷管理（com.sts.paper.controller.PaperController）"
+    }
+  ],
+  "paths": {
+    "/api/paper/papers": {
+      "get": {
+        "summary": "分页试卷",
+        "description": "权限：`paper:paper:list`。 失败时返回真实 HTTP 4xx 状态和统一 Result 错误外壳。 业务错误码见 `#/components/schemas/PaperBusinessErrorCodes`。",
+        "tags": [
+          "PaperController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "paper:paper:list",
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "分页试卷成功响应。",
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务码；0 表示成功。",
+                      "example": 0
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息。",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "分页结果。",
+                      "required": [
+                        "list",
+                        "total"
+                      ],
+                      "properties": {
+                        "list": {
+                          "type": "array",
+                          "description": "当前页数据列表。",
+                          "items": {
+                            "$ref": "#/components/schemas/PaperVO"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "format": "int64",
+                          "description": "符合条件的记录总数。",
+                          "example": 1
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "list": [
+                      {
+                        "paperId": 1,
+                        "organizationId": 1,
+                        "paperCode": "P202607001",
+                        "paperName": "安全生产期末卷",
+                        "paperType": "FIXED",
+                        "publishStatus": "DRAFT",
+                        "status": 1,
+                        "version": 0
+                      }
+                    ],
+                    "total": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "页码，从 1 开始。",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页条数。",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "example": 20
+            }
+          },
+          {
+            "name": "query.paperType",
+            "in": "query",
+            "description": "FIXED/RANDOM/CUSTOM",
+            "schema": {
+              "type": "string",
+              "example": "FIXED"
+            }
+          },
+          {
+            "name": "query.paperCategoryId",
+            "in": "query",
+            "description": "试卷分类ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          },
+          {
+            "name": "query.paperName",
+            "in": "query",
+            "description": "试卷名称，支持模糊查询。",
+            "schema": {
+              "type": "string",
+              "example": "安全生产期末卷"
+            }
+          },
+          {
+            "name": "query.hasPublishedVersion",
+            "in": "query",
+            "description": "是否只返回存在已发布版本的试卷；true 用于创建考试时筛选可用试卷。",
+            "schema": {
+              "type": "boolean",
+              "example": true
+            }
+          },
+          {
+            "name": "query.status",
+            "in": "query",
+            "description": "状态；1 表示启用，0 表示停用。",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "创建试卷",
+        "description": "权限：`paper:paper:add`。 失败时返回真实 HTTP 4xx 状态和统一 Result 错误外壳。 业务错误码见 `#/components/schemas/PaperBusinessErrorCodes`。",
+        "tags": [
+          "PaperController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "paper:paper:add",
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "创建试卷成功响应。",
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务码；0 表示成功。",
+                      "example": 0
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息。",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "新建记录主键ID。",
+                      "example": 1
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaperCreateRequest"
+              },
+              "example": {
+                "paperCode": "P1",
+                "paperName": "期末卷",
+                "paperType": "FIXED",
+                "status": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/paper/papers/{paperId}": {
+      "get": {
+        "summary": "试卷详情",
+        "description": "权限：`paper:paper:list`。 失败时返回真实 HTTP 4xx 状态和统一 Result 错误外壳。 业务错误码见 `#/components/schemas/PaperBusinessErrorCodes`。",
+        "tags": [
+          "PaperController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "paper:paper:list",
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "试卷详情成功响应。",
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务码；0 表示成功。",
+                      "example": 0
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息。",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PaperVO",
+                      "description": "接口响应数据。"
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "paperId": 1,
+                    "organizationId": 1,
+                    "paperCode": "P202607001",
+                    "paperName": "安全生产期末卷",
+                    "paperType": "FIXED",
+                    "publishStatus": "DRAFT",
+                    "status": 1,
+                    "version": 0
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "parameters": [
+          {
+            "name": "paperId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "description": "试卷ID。"
+          }
+        ]
+      },
+      "put": {
+        "summary": "更新试卷",
+        "description": "权限：`paper:paper:edit`。 失败时返回真实 HTTP 4xx 状态和统一 Result 错误外壳。 业务错误码见 `#/components/schemas/PaperBusinessErrorCodes`。",
+        "tags": [
+          "PaperController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "paper:paper:edit",
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "更新试卷成功响应。",
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务码；0 表示成功。",
+                      "example": 0
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息。",
+                      "example": "success"
+                    },
+                    "data": {
+                      "nullable": true,
+                      "description": "该接口成功时无业务数据。"
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "parameters": [
+          {
+            "name": "paperId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "description": "试卷ID。"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaperUpdateRequest"
+              },
+              "example": {
+                "paperName": "期末卷",
+                "status": 1,
+                "version": 0
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除试卷",
+        "description": "权限：`paper:paper:delete`。 失败时返回真实 HTTP 4xx 状态和统一 Result 错误外壳。 业务错误码见 `#/components/schemas/PaperBusinessErrorCodes`。",
+        "tags": [
+          "PaperController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "paper:paper:delete",
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "删除试卷成功响应。",
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务码；0 表示成功。",
+                      "example": 0
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息。",
+                      "example": "success"
+                    },
+                    "data": {
+                      "nullable": true,
+                      "description": "该接口成功时无业务数据。"
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "parameters": [
+          {
+            "name": "paperId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "description": "试卷ID。"
+          }
+        ]
+      }
+    },
+    "/api/paper/papers/{paperId}/compose": {
+      "post": {
+        "summary": "组卷草稿版本",
+        "description": "保存抽题规则或题目列表为 DRAFT 版本。 失败时返回真实 HTTP 4xx 状态和统一 Result 错误外壳。 业务错误码见 `#/components/schemas/PaperBusinessErrorCodes`。",
+        "tags": [
+          "PaperController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "paper:paper:edit",
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "组卷草稿版本成功响应。",
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务码；0 表示成功。",
+                      "example": 0
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息。",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PaperVersionVO",
+                      "description": "接口响应数据。"
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "paperVersionId": 1,
+                    "paperId": 1,
+                    "versionNo": 1,
+                    "durationSeconds": 3600,
+                    "passRatio": 0.6,
+                    "totalScore": 100,
+                    "publishStatus": "PUBLISHED",
+                    "questions": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "parameters": [
+          {
+            "name": "paperId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "description": "试卷ID。"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaperComposeRequest"
+              },
+              "example": {
+                "durationSeconds": 3600,
+                "passRatio": 0.6,
+                "questionOrderMode": "IMPORT",
+                "multiSelectScoring": "ALL_OR_NOTHING",
+                "questions": [
+                  {
+                    "questionId": 1,
+                    "score": 10,
+                    "sortOrder": 1
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/paper/papers/{paperId}/preview": {
+      "get": {
+        "summary": "预览当前版本题目",
+        "description": "权限：`paper:paper:list`。 失败时返回真实 HTTP 4xx 状态和统一 Result 错误外壳。 业务错误码见 `#/components/schemas/PaperBusinessErrorCodes`。",
+        "tags": [
+          "PaperController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "paper:paper:list",
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "预览当前版本题目成功响应。",
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务码；0 表示成功。",
+                      "example": 0
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息。",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PaperPreviewVO",
+                      "description": "接口响应数据。"
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "paperVersionId": 1,
+                    "paperId": 1,
+                    "versionNo": 1,
+                    "durationSeconds": 3600,
+                    "passRatio": 0.6,
+                    "totalScore": 100,
+                    "publishStatus": "PUBLISHED",
+                    "questions": [
+                      {
+                        "questionId": 1,
+                        "questionCode": "Q202607001",
+                        "questionType": "SINGLE",
+                        "stem": "进入生产区域前应当佩戴什么？",
+                        "score": 10,
+                        "sortOrder": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "parameters": [
+          {
+            "name": "paperId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "description": "试卷ID。"
+          }
+        ]
+      }
+    },
+    "/api/paper/papers/{paperId}/publish": {
+      "post": {
+        "summary": "发布试卷版本",
+        "description": "RANDOM 按规则抽题固化；错误码 6505-6507。 业务错误码见 `#/components/schemas/PaperBusinessErrorCodes`。",
+        "tags": [
+          "PaperController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "paper:publish",
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "发布试卷版本成功响应。",
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务码；0 表示成功。",
+                      "example": 0
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息。",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PaperVersionVO",
+                      "description": "接口响应数据。"
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "paperVersionId": 1,
+                    "paperId": 1,
+                    "versionNo": 1,
+                    "durationSeconds": 3600,
+                    "passRatio": 0.6,
+                    "totalScore": 100,
+                    "publishStatus": "PUBLISHED",
+                    "questions": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "parameters": [
+          {
+            "name": "paperId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "description": "试卷ID。"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaperComposeRequest"
+              },
+              "example": {
+                "durationSeconds": 3600,
+                "passRatio": 0.6,
+                "questionOrderMode": "IMPORT",
+                "multiSelectScoring": "ALL_OR_NOTHING",
+                "questions": [
+                  {
+                    "questionId": 1,
+                    "score": 10,
+                    "sortOrder": 1
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/paper/papers/versions/{paperVersionId}": {
+      "get": {
+        "summary": "试卷版本详情",
+        "description": "权限：`paper:paper:list`。 失败时返回真实 HTTP 4xx 状态和统一 Result 错误外壳。 业务错误码见 `#/components/schemas/PaperBusinessErrorCodes`。",
+        "tags": [
+          "PaperController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "paper:paper:list",
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "试卷版本详情成功响应。",
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "业务码；0 表示成功。",
+                      "example": 0
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息。",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PaperVersionVO",
+                      "description": "接口响应数据。"
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "paperVersionId": 1,
+                    "paperId": 1,
+                    "versionNo": 1,
+                    "durationSeconds": 3600,
+                    "passRatio": 0.6,
+                    "totalScore": 100,
+                    "publishStatus": "PUBLISHED",
+                    "questions": []
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "parameters": [
+          {
+            "name": "paperVersionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "description": "试卷版本ID。"
+          }
+        ]
+      }
+    },
+    "/api/paper/papers/{paperId}/versions": {
+      "get": {
+        "tags": [
+          "PaperController"
+        ],
+        "summary": "查询试卷版本列表",
+        "description": "按版本号倒序返回该试卷的全部版本摘要，首条为最新版本。组卷产生的草稿版本也在其中——刷新页面后可由此拿到草稿的 `paperVersionId`，再调用版本详情接口完整回读题目、抽题规则与随机种子。注意 `PaperVO.currentVersionNo` 是版本序号，不能直接当作 `paperVersionId` 使用。",
+        "x-permission": "paper:paper:list",
+        "parameters": [
+          {
+            "name": "paperId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "description": "试卷 ID。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultPaperVersionSummaryList"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ResultEnvelope": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务码，0 成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息。",
+            "example": "success"
+          },
+          "data": {
+            "description": "业务数据。"
+          }
+        }
+      },
+      "PaperBusinessErrorCodes": {
+        "type": "object",
+        "description": "paper 域当前实现使用的业务错误码；失败响应同时使用真实 HTTP 4xx 状态。",
+        "properties": {
+          "6501": {
+            "type": "string",
+            "description": "业务码 6501：试卷不存在。",
+            "example": "试卷不存在"
+          },
+          "6502": {
+            "type": "string",
+            "description": "业务码 6502：同机构下试卷编码已存在。",
+            "example": "同机构下试卷编码已存在"
+          },
+          "6503": {
+            "type": "string",
+            "description": "业务码 6503：试卷版本不存在。",
+            "example": "试卷版本不存在"
+          },
+          "6504": {
+            "type": "string",
+            "description": "业务码 6504：试卷尚无版本可预览。",
+            "example": "试卷尚无版本可预览"
+          },
+          "6505": {
+            "type": "string",
+            "description": "业务码 6505：组卷结果为空或未指定题目。",
+            "example": "组卷结果为空或未指定题目"
+          },
+          "6506": {
+            "type": "string",
+            "description": "业务码 6506：随机试卷未提供抽题规则。",
+            "example": "随机试卷未提供抽题规则"
+          },
+          "6507": {
+            "type": "string",
+            "description": "业务码 6507：随机抽题数量不足。",
+            "example": "随机抽题数量不足"
+          },
+          "6508": {
+            "type": "string",
+            "description": "业务码 6508：题目版本无效或未发布。",
+            "example": "题目版本无效或未发布"
+          }
+        }
+      },
+      "PaperComposeRequest": {
+        "type": "object",
+        "description": "PaperComposeRequest 数据结构。",
+        "required": [
+          "durationSeconds",
+          "passRatio",
+          "questionOrderMode",
+          "multiSelectScoring"
+        ],
+        "properties": {
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "description": "时长，单位为秒。",
+            "example": 1
+          },
+          "passRatio": {
+            "type": "number",
+            "format": "double",
+            "description": "及格比例。",
+            "example": 1
+          },
+          "questionOrderMode": {
+            "type": "string",
+            "description": "题目顺序模式。",
+            "example": "IMPORT"
+          },
+          "multiSelectScoring": {
+            "type": "string",
+            "description": "多选题计分方式。",
+            "example": "ALL_OR_NOTHING"
+          },
+          "drawSettingMode": {
+            "type": "string",
+            "description": "抽题配置模式。",
+            "example": "示例值"
+          },
+          "versionNote": {
+            "type": "string",
+            "description": "版本说明。",
+            "example": "示例值"
+          },
+          "randomSeed": {
+            "type": "integer",
+            "format": "int64",
+            "description": "随机种子。",
+            "example": 1
+          },
+          "questions": {
+            "type": "array",
+            "description": "题目列表。",
+            "items": {
+              "$ref": "#/components/schemas/PaperQuestionItemRequest"
+            }
+          },
+          "drawRules": {
+            "type": "array",
+            "description": "随机抽题规则列表。",
+            "items": {
+              "$ref": "#/components/schemas/PaperDrawRuleRequest"
+            }
+          }
+        }
+      },
+      "PaperCreateRequest": {
+        "type": "object",
+        "description": "PaperCreateRequest 数据结构。",
+        "required": [
+          "paperCode",
+          "paperName",
+          "paperType",
+          "status"
+        ],
+        "properties": {
+          "paperCode": {
+            "type": "string",
+            "description": "试卷编码。",
+            "example": "P202607001"
+          },
+          "paperName": {
+            "type": "string",
+            "description": "试卷名称。",
+            "example": "安全生产期末卷"
+          },
+          "paperType": {
+            "type": "string",
+            "description": "组卷类型。",
+            "example": "FIXED"
+          },
+          "paperCategoryId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "试卷分类ID。",
+            "example": 1
+          },
+          "coverFileId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "封面文件ID。",
+            "example": 1
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "状态；1 表示启用，0 表示停用。",
+            "example": 1
+          }
+        }
+      },
+      "PaperDrawRuleRequest": {
+        "type": "object",
+        "description": "PaperDrawRuleRequest 数据结构。",
+        "required": [
+          "questionBankId",
+          "questionType",
+          "drawCount",
+          "scorePerQuestion",
+          "sortOrder"
+        ],
+        "properties": {
+          "questionBankId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "题库ID。",
+            "example": 1
+          },
+          "questionType": {
+            "type": "string",
+            "description": "题型。",
+            "example": "SINGLE"
+          },
+          "difficulty": {
+            "type": "string",
+            "description": "难度等级。",
+            "example": "EASY"
+          },
+          "knowledgePointId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "知识点ID。",
+            "example": 1
+          },
+          "drawCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "抽取题目数量。",
+            "example": 1
+          },
+          "scorePerQuestion": {
+            "type": "number",
+            "format": "double",
+            "description": "每题分值。",
+            "example": 1
+          },
+          "bankWeight": {
+            "type": "number",
+            "format": "double",
+            "description": "题库抽题权重。",
+            "example": 1
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32",
+            "description": "排序值，数值越小越靠前。",
+            "example": 1
+          }
+        }
+      },
+      "PaperQuery": {
+        "type": "object",
+        "description": "PaperQuery 数据结构。",
+        "properties": {
+          "paperType": {
+            "type": "string",
+            "description": "组卷类型。",
+            "example": "FIXED"
+          },
+          "paperCategoryId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "试卷分类ID。",
+            "example": 1
+          },
+          "paperName": {
+            "type": "string",
+            "description": "试卷名称。",
+            "example": "安全生产期末卷"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "状态；1 表示启用，0 表示停用。",
+            "example": 1
+          },
+          "hasPublishedVersion": {
+            "type": "boolean",
+            "example": true,
+            "description": "是否只看存在已发布版本的试卷。true 只返回可直接用于创建考试的试卷；false 只返回尚无发布版本的试卷；不传则不筛选。判定看该试卷是否存在任一已发布版本，草稿覆盖发布版后仍判定为 true。"
+          }
+        }
+      },
+      "PaperQuestionItemRequest": {
+        "type": "object",
+        "description": "PaperQuestionItemRequest 数据结构。",
+        "required": [
+          "questionId",
+          "score",
+          "sortOrder"
+        ],
+        "properties": {
+          "questionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "题目ID。",
+            "example": 1
+          },
+          "questionVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "题目版本ID。",
+            "example": 1
+          },
+          "score": {
+            "type": "number",
+            "format": "double",
+            "description": "分值。",
+            "example": 1
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32",
+            "description": "排序值，数值越小越靠前。",
+            "example": 1
+          }
+        }
+      },
+      "PaperUpdateRequest": {
+        "type": "object",
+        "description": "PaperUpdateRequest 数据结构。",
+        "required": [
+          "paperName",
+          "status",
+          "version"
+        ],
+        "properties": {
+          "paperName": {
+            "type": "string",
+            "description": "试卷名称。",
+            "example": "安全生产期末卷"
+          },
+          "paperCategoryId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "试卷分类ID。",
+            "example": 1
+          },
+          "coverFileId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "封面文件ID。",
+            "example": 1
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "状态；1 表示启用，0 表示停用。",
+            "example": 1
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "description": "乐观锁版本号。",
+            "example": 1
+          }
+        }
+      },
+      "PaperPreviewVO": {
+        "type": "object",
+        "description": "PaperPreviewVO 数据结构。",
+        "properties": {
+          "paperId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "试卷ID。",
+            "example": 1
+          },
+          "paperType": {
+            "type": "string",
+            "description": "组卷类型。",
+            "example": "FIXED"
+          },
+          "totalScore": {
+            "type": "number",
+            "format": "double",
+            "description": "总分。",
+            "example": 1
+          },
+          "passScore": {
+            "type": "number",
+            "format": "double",
+            "description": "及格分数。",
+            "example": 1
+          },
+          "questionCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "题目数量。",
+            "example": 1
+          },
+          "questions": {
+            "type": "array",
+            "description": "题目列表。",
+            "items": {
+              "$ref": "#/components/schemas/PaperVersionQuestionVO"
+            }
+          }
+        }
+      },
+      "PaperVO": {
+        "type": "object",
+        "description": "PaperVO 数据结构。",
+        "properties": {
+          "paperId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "试卷ID。",
+            "example": 1
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "所属机构ID。",
+            "example": 1
+          },
+          "paperCode": {
+            "type": "string",
+            "description": "试卷编码。",
+            "example": "P202607001"
+          },
+          "paperName": {
+            "type": "string",
+            "description": "试卷名称。",
+            "example": "安全生产期末卷"
+          },
+          "paperType": {
+            "type": "string",
+            "description": "组卷类型。",
+            "example": "FIXED"
+          },
+          "paperCategoryId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "试卷分类ID。",
+            "example": 1
+          },
+          "coverFileId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "封面文件ID。",
+            "example": 1
+          },
+          "currentVersionNo": {
+            "type": "integer",
+            "format": "int32",
+            "description": "当前版本序号（**不是** paperVersionId）。创建考试所需的 `paperVersionId` 请从版本列表或版本详情接口获取。从未组卷时为 0。",
+            "example": 1
+          },
+          "archiveStatus": {
+            "type": "string",
+            "description": "归档状态。",
+            "example": "ACTIVE"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "状态；1 表示启用，0 表示停用。",
+            "example": 1
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "description": "乐观锁版本号。",
+            "example": 1
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "创建时间。",
+            "example": "2026-07-28T10:00:00"
+          }
+        }
+      },
+      "PaperVersionQuestionVO": {
+        "type": "object",
+        "description": "PaperVersionQuestionVO 数据结构。",
+        "properties": {
+          "paperQuestionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "试卷版本题目ID。",
+            "example": 1
+          },
+          "questionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "题目ID。",
+            "example": 1
+          },
+          "questionVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "题目版本ID。",
+            "example": 1
+          },
+          "questionType": {
+            "type": "string",
+            "description": "题型。",
+            "example": "SINGLE"
+          },
+          "score": {
+            "type": "number",
+            "format": "double",
+            "description": "分值。",
+            "example": 1
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32",
+            "description": "排序值，数值越小越靠前。",
+            "example": 1
+          },
+          "sourceBankId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "来源题库ID。",
+            "example": 1
+          }
+        }
+      },
+      "PaperVersionVO": {
+        "type": "object",
+        "description": "PaperVersionVO 数据结构。",
+        "properties": {
+          "paperVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "试卷版本ID。",
+            "example": 1
+          },
+          "paperId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "试卷ID。",
+            "example": 1
+          },
+          "versionNo": {
+            "type": "integer",
+            "format": "int32",
+            "description": "版本号。",
+            "example": 1
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "description": "时长，单位为秒。",
+            "example": 1
+          },
+          "totalScore": {
+            "type": "number",
+            "format": "double",
+            "description": "总分。",
+            "example": 1
+          },
+          "passRatio": {
+            "type": "number",
+            "format": "double",
+            "description": "及格比例。",
+            "example": 1
+          },
+          "passScore": {
+            "type": "number",
+            "format": "double",
+            "description": "及格分数。",
+            "example": 1
+          },
+          "questionCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "题目数量。",
+            "example": 1
+          },
+          "questionOrderMode": {
+            "type": "string",
+            "description": "题目顺序模式。",
+            "example": "IMPORT"
+          },
+          "multiSelectScoring": {
+            "type": "string",
+            "description": "多选题计分方式。",
+            "example": "ALL_OR_NOTHING"
+          },
+          "drawSettingMode": {
+            "type": "string",
+            "description": "抽题配置模式。",
+            "example": "示例值"
+          },
+          "publishedStatus": {
+            "type": "string",
+            "description": "发布状态。",
+            "example": "示例值"
+          },
+          "publishedBy": {
+            "type": "integer",
+            "format": "int64",
+            "description": "发布人用户ID。",
+            "example": 1
+          },
+          "publishedTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "发布时间。",
+            "example": "2026-07-28T10:00:00"
+          },
+          "versionNote": {
+            "type": "string",
+            "description": "版本说明。",
+            "example": "示例值"
+          },
+          "questions": {
+            "type": "array",
+            "description": "题目列表。",
+            "items": {
+              "$ref": "#/components/schemas/PaperVersionQuestionVO"
+            }
+          },
+          "randomSeed": {
+            "type": "integer",
+            "format": "int64",
+            "example": 20260731,
+            "description": "随机卷抽题种子。相同种子与相同抽题规则可复现同一套题目；固定卷为 null；本能力上线前生成的历史版本也为 null。",
+            "nullable": true
+          },
+          "drawRules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperDrawRuleVO"
+            },
+            "description": "抽题规则列表，按 sortOrder 升序；固定卷为空数组。"
+          }
+        }
+      },
+      "PaperDrawRuleVO": {
+        "type": "object",
+        "description": "随机试卷版本的抽题规则。与 randomSeed 一起构成抽题结果可重现的依据。",
+        "properties": {
+          "drawRuleId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "抽题规则 ID。"
+          },
+          "paperVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "所属试卷版本 ID。"
+          },
+          "questionBankId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "抽题来源题库 ID。"
+          },
+          "questionType": {
+            "type": "string",
+            "example": "SINGLE",
+            "description": "抽取的题型。SINGLE 单选；MULTIPLE 多选；JUDGE 判断；FILL 填空；ESSAY 问答。",
+            "enum": [
+              "SINGLE",
+              "MULTIPLE",
+              "JUDGE",
+              "FILL",
+              "ESSAY"
+            ]
+          },
+          "difficulty": {
+            "type": "string",
+            "example": "ALL",
+            "description": "抽取的难度。ALL 不限；EASY 简单；NORMAL 普通；HARD 困难；VERY_HARD 很难。",
+            "enum": [
+              "ALL",
+              "EASY",
+              "NORMAL",
+              "HARD",
+              "VERY_HARD"
+            ]
+          },
+          "knowledgePointId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 0,
+            "description": "限定知识点 ID；0 表示不限定。"
+          },
+          "drawCount": {
+            "type": "integer",
+            "example": 5,
+            "description": "抽取题目数量。"
+          },
+          "scorePerQuestion": {
+            "type": "number",
+            "format": "double",
+            "example": 2,
+            "description": "每题分值。"
+          },
+          "bankWeight": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "多题库时该题库的抽取权重；为空表示不加权。",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "example": 1,
+            "description": "显示顺序，升序排列。"
+          }
+        }
+      },
+      "PaperVersionSummaryVO": {
+        "type": "object",
+        "description": "试卷版本摘要。用于从 paperId 找到具体 paperVersionId（含草稿版本）。",
+        "properties": {
+          "paperVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 12,
+            "description": "试卷版本 ID。创建考试与查看版本详情都用它。"
+          },
+          "paperId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 2,
+            "description": "所属试卷 ID。"
+          },
+          "versionNo": {
+            "type": "integer",
+            "example": 2,
+            "description": "版本序号，从 1 递增。"
+          },
+          "publishedStatus": {
+            "type": "string",
+            "example": "DRAFT",
+            "description": "发布状态。DRAFT 草稿；PUBLISHED 已发布；ARCHIVED 已归档。",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ]
+          },
+          "publishedBy": {
+            "type": "integer",
+            "format": "int64",
+            "example": 77,
+            "description": "发布人用户 ID；未发布时为空。",
+            "nullable": true
+          },
+          "publishedTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-31T09:00:00",
+            "description": "发布时间；未发布时为空。",
+            "nullable": true
+          },
+          "versionNote": {
+            "type": "string",
+            "example": "调整抽题规则",
+            "description": "版本说明，可为空。",
+            "nullable": true
+          }
+        }
+      },
+      "ResultPaperVersionSummaryList": {
+        "type": "object",
+        "description": "试卷版本摘要列表。",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 0,
+            "description": "业务状态码，0 表示成功。"
+          },
+          "message": {
+            "type": "string",
+            "example": "success",
+            "description": "响应消息。"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperVersionSummaryVO"
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "请求参数错误。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 1001,
+              "message": "请求参数校验失败",
+              "data": null
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "未登录或登录状态已失效。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 1002,
+              "message": "未登录或登录状态已失效",
+              "data": null
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "当前用户没有接口所需权限。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 1003,
+              "message": "无权执行此操作",
+              "data": null
+            }
+          }
+        }
+      },
+      "ResultPaperVersionSummaryList": {
+        "description": "操作成功。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultPaperVersionSummaryList"
+            },
+            "example": {
+              "code": 0,
+              "message": "success",
+              "data": [
+                {
+                  "paperVersionId": 12,
+                  "paperId": 2,
+                  "versionNo": 2,
+                  "publishedStatus": "DRAFT",
+                  "publishedBy": null,
+                  "publishedTime": null,
+                  "versionNote": "调整抽题规则"
+                },
+                {
+                  "paperVersionId": 11,
+                  "paperId": 2,
+                  "versionNo": 1,
+                  "publishedStatus": "PUBLISHED",
+                  "publishedBy": 77,
+                  "publishedTime": "2026-07-20T10:00:00",
+                  "versionNote": null
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

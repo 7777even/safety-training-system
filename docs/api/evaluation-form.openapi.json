@@ -1,0 +1,1716 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "评价表单 API 契约",
+    "version": "1.0.0",
+    "description": "STS M3 EVALUATION OpenAPI：评价表单定义与不可变版本。错误码 8500-8699。"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "sts-service-admin context path"
+    }
+  ],
+  "tags": [
+    {
+      "name": "EvaluationFormController",
+      "description": "评价表单（com.sts.evaluation.controller.EvaluationFormController）"
+    }
+  ],
+  "paths": {
+    "/api/evaluation/forms": {
+      "get": {
+        "summary": "分页查询评价表单",
+        "description": "分页查询当前可见范围内的评价表单。支持按 organizationId、formCode、formName、formType、status 过滤，参数以 query.* 前缀绑定。返回的是表单主体，不含项目与评分规则；currentVersionNo 为该表单已发布的最新版本号，未发布过时为 0。本接口只做过滤查询，不返回 8501~8507 评价表单域业务错误码。",
+        "tags": [
+          "EvaluationFormController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "evaluation:form:list",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultPageResultEvaluationFormVO"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "页码，从 1 开始。",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页条数。",
+            "schema": {
+              "type": "integer",
+              "example": 20
+            }
+          },
+          {
+            "name": "query.formCode",
+            "in": "query",
+            "description": "表单编码。",
+            "schema": {
+              "type": "string",
+              "example": "示例值"
+            }
+          },
+          {
+            "name": "query.formName",
+            "in": "query",
+            "description": "表单名称。",
+            "schema": {
+              "type": "string",
+              "example": "示例值"
+            }
+          },
+          {
+            "name": "query.formType",
+            "in": "query",
+            "description": "表单类型，仅 COMPOSITE 或 EXPERT_INSPECTION。",
+            "schema": {
+              "type": "string",
+              "example": "示例值"
+            }
+          },
+          {
+            "name": "query.status",
+            "in": "query",
+            "description": "启停状态。",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "创建评价表单",
+        "description": "创建评价表单主体。创建后 currentVersionNo 为 0，尚无任何版本，需再调用发布接口生成第 1 版。formCode 在同一 organizationId 下唯一，重复返回 409 业务码 8502。",
+        "tags": [
+          "EvaluationFormController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "evaluation:form:add",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultId"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationFormCreateRequest"
+              },
+              "example": {
+                "formCode": "EF-SPECIAL-2026",
+                "formName": "特种作业综合评价表",
+                "formType": "COMPOSITE",
+                "status": 1,
+                "description": "用于特种作业培训计划的综合成绩评价。"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/evaluation/forms/{evaluationFormId}": {
+      "get": {
+        "summary": "查询评价表单详情",
+        "description": "查询单个评价表单主体详情。表单不存在返回 404 业务码 8501。本接口不返回项目与评分规则，需要完整内容时改用版本详情接口。",
+        "tags": [
+          "EvaluationFormController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "evaluation:form:list",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultEvaluationFormVO"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "parameters": [
+          {
+            "name": "evaluationFormId",
+            "in": "path",
+            "required": true,
+            "description": "评价表单 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ]
+      },
+      "put": {
+        "summary": "更新评价表单",
+        "description": "更新评价表单主体。请求必须携带从查询接口取得的 version，后端按该值做乐观锁更新；与库中不一致说明已被他人修改，返回 409 业务码 8504，本次修改不生效。本接口只改主体，不影响任何已发布版本的项目与评分规则。",
+        "tags": [
+          "EvaluationFormController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "evaluation:form:edit",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultVoid"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "parameters": [
+          {
+            "name": "evaluationFormId",
+            "in": "path",
+            "required": true,
+            "description": "评价表单 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationFormUpdateRequest"
+              },
+              "example": {
+                "version": 3,
+                "formName": "特种作业综合评价表",
+                "formType": "COMPOSITE",
+                "status": 1,
+                "description": "用于特种作业培训计划的综合成绩评价。"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除评价表单",
+        "description": "删除评价表单（逻辑删除）。仅当该表单不存在任何版本时可删除；已有发布版本返回 409 业务码 8507，表单保持原状。表单不存在返回 404 业务码 8501。",
+        "tags": [
+          "EvaluationFormController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "evaluation:form:delete",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultVoid"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "parameters": [
+          {
+            "name": "evaluationFormId",
+            "in": "path",
+            "required": true,
+            "description": "评价表单 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/evaluation/forms/{evaluationFormId}/publish": {
+      "post": {
+        "summary": "发布评价表单新版本",
+        "description": "发布评价表单的新版本，版本号在 currentVersionNo 基础上加 1，并冻结本次提交的项目与评分规则。关键规则：（1）items 不能为空，否则返回 400 业务码 8505；（2）请求携带的 version 用于表单主体乐观锁，冲突返回 409 业务码 8504，本次发布整体不生效；（3）scoreRules 通过 evaluationItemCode 关联同一批次 items 的 itemCode，后端在项目落库后回填真实 evaluationItemId，不接受调用方传入 ID；引用了不在本批次 items 中的编码返回 400 业务码 8506；（4）publishedBy、publishedTime 由后端从登录态和服务器时间派生，请求传入无效；（5）历史版本不可变，发布新版本不会修改已有版本的任何内容。表单不存在返回 404 业务码 8501。",
+        "tags": [
+          "EvaluationFormController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "evaluation:form:publish",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultEvaluationFormVersionDetailVO"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "parameters": [
+          {
+            "name": "evaluationFormId",
+            "in": "path",
+            "required": true,
+            "description": "评价表单 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationFormPublishRequest"
+              },
+              "example": {
+                "version": 3,
+                "totalScore": 100.0,
+                "versionNote": "2026 年度特种作业综合评价表，调整实操权重。",
+                "items": [
+                  {
+                    "itemCode": "THEORY",
+                    "itemName": "理论考试成绩",
+                    "itemType": "SCORE",
+                    "maxScore": 60.0,
+                    "weight": 0.6,
+                    "sortOrder": 1,
+                    "isRequired": 1
+                  },
+                  {
+                    "itemCode": "PRACTICE",
+                    "itemName": "实操表现",
+                    "itemType": "SCORE",
+                    "maxScore": 40.0,
+                    "weight": 0.4,
+                    "sortOrder": 2,
+                    "isRequired": 1
+                  },
+                  {
+                    "itemCode": "REMARK",
+                    "itemName": "带训教师评语",
+                    "itemType": "TEXT",
+                    "maxScore": null,
+                    "weight": null,
+                    "sortOrder": 3,
+                    "isRequired": 0
+                  }
+                ],
+                "scoreRules": [
+                  {
+                    "evaluationItemCode": "THEORY",
+                    "calculationType": "WEIGHT",
+                    "sourceType": "EXAM",
+                    "scoreChange": null,
+                    "weight": 0.6,
+                    "sortOrder": 1,
+                    "ruleDescription": "取培训计划内考试的正式成绩，按 60% 权重折算计入总分。"
+                  },
+                  {
+                    "evaluationItemCode": "PRACTICE",
+                    "calculationType": "WEIGHT",
+                    "sourceType": "OFFLINE",
+                    "scoreChange": null,
+                    "weight": 0.4,
+                    "sortOrder": 2,
+                    "ruleDescription": "取线下实操成绩，按 40% 权重折算计入总分。"
+                  },
+                  {
+                    "evaluationItemCode": "PRACTICE",
+                    "calculationType": "ADJUSTMENT",
+                    "sourceType": "REWARD_PENALTY",
+                    "scoreChange": -5.0,
+                    "weight": null,
+                    "sortOrder": 3,
+                    "ruleDescription": "存在违规扣分记录时，在总分基础上扣减 5 分。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/evaluation/forms/versions/{formVersionId}": {
+      "get": {
+        "summary": "查询评价表单版本详情",
+        "description": "按版本 ID 查询该版本的完整快照，含项目与评分规则。返回内容为发布时冻结的结果，不随表单主体后续修改而变化。版本不存在返回 404 业务码 8503。",
+        "tags": [
+          "EvaluationFormController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "evaluation:form:list",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultEvaluationFormVersionDetailVO"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "parameters": [
+          {
+            "name": "formVersionId",
+            "in": "path",
+            "required": true,
+            "description": "表单版本 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/evaluation/forms/{evaluationFormId}/versions": {
+      "get": {
+        "summary": "查询评价表单版本历史",
+        "description": "查询指定评价表单的版本历史摘要，按 versionNo 倒序返回，首条为最新版本。仅返回摘要，不含项目与评分规则，需要完整内容时用其中的 formVersionId 调用版本详情接口。表单不存在返回 404 业务码 8501。",
+        "tags": [
+          "EvaluationFormController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "evaluation:form:list",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultEvaluationFormVersionSummaryList"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "parameters": [
+          {
+            "name": "evaluationFormId",
+            "in": "path",
+            "required": true,
+            "description": "评价表单 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "登录访问令牌。"
+      }
+    },
+    "schemas": {
+      "EvaluationFormCreateRequest": {
+        "type": "object",
+        "description": "EvaluationFormCreateRequest 接口模型。",
+        "properties": {
+          "formCode": {
+            "type": "string",
+            "example": "示例值",
+            "description": "表单编码，同一机构下唯一。"
+          },
+          "formName": {
+            "type": "string",
+            "example": "示例值",
+            "description": "表单名称。"
+          },
+          "formType": {
+            "type": "string",
+            "example": "COMPOSITE",
+            "description": "表单类型。COMPOSITE 综合评价表单，用于按评分规则汇总课程、考试、线下等来源成绩；EXPERT_INSPECTION 专家检查表单，用于专家现场打分。",
+            "enum": [
+              "COMPOSITE",
+              "EXPERT_INSPECTION"
+            ]
+          },
+          "status": {
+            "type": "integer",
+            "example": 0,
+            "description": "启用状态。0 禁用，禁用后不可被培训计划新绑定；1 正常。",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "description": {
+            "type": "string",
+            "example": "示例值",
+            "description": "表单描述。"
+          }
+        },
+        "required": [
+          "formCode",
+          "formName",
+          "formType",
+          "status",
+          "description"
+        ]
+      },
+      "EvaluationFormPublishRequest": {
+        "type": "object",
+        "description": "EvaluationFormPublishRequest 接口模型。",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "example": 1,
+            "description": "表单主体当前乐观锁版本号；冲突返回 409 业务码 8504，本次发布整体不生效。"
+          },
+          "totalScore": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "本版本总分。"
+          },
+          "versionNote": {
+            "type": "string",
+            "example": "示例值",
+            "description": "版本说明，可为空。",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvaluationItemRequest"
+            },
+            "description": "本版本的评价项目列表，不能为空，否则返回 400 业务码 8505。"
+          },
+          "scoreRules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvaluationScoreRuleRequest"
+            },
+            "description": "本版本的评分规则列表，可为空数组表示不配置自动计分。"
+          }
+        },
+        "required": [
+          "version",
+          "totalScore",
+          "items"
+        ]
+      },
+      "EvaluationFormQuery": {
+        "type": "object",
+        "description": "EvaluationFormQuery 接口模型。",
+        "properties": {
+          "formCode": {
+            "type": "string",
+            "example": "示例值",
+            "description": "按表单编码精确过滤。"
+          },
+          "formName": {
+            "type": "string",
+            "example": "示例值",
+            "description": "按表单名称模糊过滤。"
+          },
+          "formType": {
+            "type": "string",
+            "example": "COMPOSITE",
+            "description": "表单类型。COMPOSITE 综合评价表单，用于按评分规则汇总课程、考试、线下等来源成绩；EXPERT_INSPECTION 专家检查表单，用于专家现场打分。",
+            "enum": [
+              "COMPOSITE",
+              "EXPERT_INSPECTION"
+            ]
+          },
+          "status": {
+            "type": "integer",
+            "example": 0,
+            "description": "启用状态。0 禁用，禁用后不可被培训计划新绑定；1 正常。",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "EvaluationFormUpdateRequest": {
+        "type": "object",
+        "description": "EvaluationFormUpdateRequest 接口模型。",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "example": 1,
+            "description": "表单主体当前乐观锁版本号，取自查询接口；与库中不一致返回 409 业务码 8504。"
+          },
+          "formName": {
+            "type": "string",
+            "example": "示例值",
+            "description": "表单名称。"
+          },
+          "formType": {
+            "type": "string",
+            "example": "COMPOSITE",
+            "description": "表单类型。COMPOSITE 综合评价表单，用于按评分规则汇总课程、考试、线下等来源成绩；EXPERT_INSPECTION 专家检查表单，用于专家现场打分。",
+            "enum": [
+              "COMPOSITE",
+              "EXPERT_INSPECTION"
+            ]
+          },
+          "status": {
+            "type": "integer",
+            "example": 0,
+            "description": "启用状态。0 禁用，禁用后不可被培训计划新绑定；1 正常。",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "description": {
+            "type": "string",
+            "example": "示例值",
+            "description": "表单描述。"
+          }
+        },
+        "required": [
+          "version",
+          "formName",
+          "formType",
+          "status",
+          "description"
+        ]
+      },
+      "EvaluationItemRequest": {
+        "type": "object",
+        "description": "EvaluationItemRequest 接口模型。",
+        "properties": {
+          "itemCode": {
+            "type": "string",
+            "example": "示例值",
+            "description": "评价项目编码，在同一次发布的 items 内唯一，供 scoreRules 通过 evaluationItemCode 引用。"
+          },
+          "itemName": {
+            "type": "string",
+            "example": "示例值",
+            "description": "评价项目名称。"
+          },
+          "itemType": {
+            "type": "string",
+            "example": "SCORE",
+            "description": "评价项目类型。SCORE 打分项，按 maxScore 与 weight 参与计算；TEXT 文本项，只记录文字意见，不参与计分；CHOICE 选择项，记录选项结果，是否计分取决于关联的评分规则。",
+            "enum": [
+              "SCORE",
+              "TEXT",
+              "CHOICE"
+            ]
+          },
+          "maxScore": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "满分，可为空；itemType 为 TEXT 时通常不填。",
+            "nullable": true
+          },
+          "weight": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "权重，可为空；不参与加权计算时不填。",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "example": 1,
+            "description": "显示顺序，升序排列。"
+          },
+          "isRequired": {
+            "type": "integer",
+            "example": 0,
+            "description": "是否必填。0 否，可留空；1 是，提交评价时必须填写。",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        },
+        "required": [
+          "itemCode",
+          "itemName",
+          "itemType",
+          "sortOrder",
+          "isRequired"
+        ]
+      },
+      "EvaluationScoreRuleRequest": {
+        "type": "object",
+        "description": "EvaluationScoreRuleRequest 接口模型。",
+        "properties": {
+          "evaluationItemCode": {
+            "type": "string",
+            "example": "示例值",
+            "description": "关联的评价项目编码，必须命中同一次发布 items 中的 itemCode；否则返回 400 业务码 8506。后端据此回填真实评价项目 ID，不接受直接传 ID。"
+          },
+          "calculationType": {
+            "type": "string",
+            "example": "WEIGHT",
+            "description": "基础计算类型。WEIGHT 权重折算，按 weight 将来源成绩折算后计入总分；ADJUSTMENT 加减分调整，按 scoreChange 在总分上直接加减（正数加分，负数减分）。",
+            "enum": [
+              "WEIGHT",
+              "ADJUSTMENT"
+            ]
+          },
+          "sourceType": {
+            "type": "string",
+            "example": "COURSE",
+            "description": "成绩来源类型。COURSE 课程学习成绩；EXAM 考试成绩；OFFLINE 线下培训成绩；REWARD_PENALTY 奖惩记录；MANUAL 人工录入。",
+            "enum": [
+              "COURSE",
+              "EXAM",
+              "OFFLINE",
+              "REWARD_PENALTY",
+              "MANUAL"
+            ]
+          },
+          "scoreChange": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "基础加减分值，正数加分、负数减分；calculationType 为 WEIGHT 时可为空。",
+            "nullable": true
+          },
+          "weight": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "成绩权重；calculationType 为 ADJUSTMENT 时可为空。",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "example": 1,
+            "description": "显示顺序，升序排列。"
+          },
+          "ruleDescription": {
+            "type": "string",
+            "example": "示例值",
+            "description": "评分规则说明。"
+          }
+        },
+        "required": [
+          "evaluationItemCode",
+          "calculationType",
+          "sourceType",
+          "sortOrder",
+          "ruleDescription"
+        ]
+      },
+      "EvaluationFormVO": {
+        "type": "object",
+        "description": "EvaluationFormVO 接口模型。",
+        "properties": {
+          "evaluationFormId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "评价表单 ID。"
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "所属机构 ID。"
+          },
+          "formCode": {
+            "type": "string",
+            "example": "示例值",
+            "description": "表单编码。"
+          },
+          "formName": {
+            "type": "string",
+            "example": "示例值",
+            "description": "表单名称。"
+          },
+          "formType": {
+            "type": "string",
+            "example": "COMPOSITE",
+            "description": "表单类型。COMPOSITE 综合评价表单，用于按评分规则汇总课程、考试、线下等来源成绩；EXPERT_INSPECTION 专家检查表单，用于专家现场打分。",
+            "enum": [
+              "COMPOSITE",
+              "EXPERT_INSPECTION"
+            ]
+          },
+          "currentVersionNo": {
+            "type": "integer",
+            "example": 1,
+            "description": "当前已发布的最新版本号；从未发布时为 0。"
+          },
+          "status": {
+            "type": "integer",
+            "example": 0,
+            "description": "启用状态。0 禁用，禁用后不可被培训计划新绑定；1 正常。",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "description": {
+            "type": "string",
+            "example": "示例值",
+            "description": "表单描述。"
+          },
+          "version": {
+            "type": "integer",
+            "example": 1,
+            "description": "乐观锁版本号，更新和发布时需原样回传。"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-31T09:00:00",
+            "description": "创建时间。"
+          }
+        }
+      },
+      "EvaluationFormVersionDetailVO": {
+        "type": "object",
+        "description": "EvaluationFormVersionDetailVO 接口模型。",
+        "properties": {
+          "formVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "表单版本 ID。"
+          },
+          "evaluationFormId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "所属评价表单 ID。"
+          },
+          "versionNo": {
+            "type": "integer",
+            "example": 1,
+            "description": "版本号，从 1 开始递增。"
+          },
+          "totalScore": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "本版本总分。"
+          },
+          "publishedStatus": {
+            "type": "string",
+            "example": "DRAFT",
+            "description": "版本发布状态。DRAFT 草稿；PUBLISHED 已发布，内容不可再修改；ARCHIVED 已归档，仅供追溯。经发布接口生成的版本固定为 PUBLISHED。",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ]
+          },
+          "publishedBy": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "发布人用户 ID；未发布时为空。",
+            "nullable": true
+          },
+          "publishedTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-31T09:00:00",
+            "description": "发布时间；未发布时为空。",
+            "nullable": true
+          },
+          "versionNote": {
+            "type": "string",
+            "example": "示例值",
+            "description": "版本说明，可为空。",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvaluationItemVO"
+            },
+            "description": "本版本冻结的评价项目列表。"
+          },
+          "scoreRules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvaluationScoreRuleVO"
+            },
+            "description": "本版本冻结的评分规则列表。"
+          }
+        }
+      },
+      "EvaluationFormVersionSummaryVO": {
+        "type": "object",
+        "description": "EvaluationFormVersionSummaryVO 接口模型。",
+        "properties": {
+          "formVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "表单版本 ID。"
+          },
+          "evaluationFormId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "所属评价表单 ID。"
+          },
+          "versionNo": {
+            "type": "integer",
+            "example": 1,
+            "description": "版本号，从 1 开始递增。"
+          },
+          "publishedStatus": {
+            "type": "string",
+            "example": "DRAFT",
+            "description": "版本发布状态。DRAFT 草稿；PUBLISHED 已发布，内容不可再修改；ARCHIVED 已归档，仅供追溯。经发布接口生成的版本固定为 PUBLISHED。",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ]
+          },
+          "publishedBy": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "发布人用户 ID；未发布时为空。",
+            "nullable": true
+          },
+          "publishedTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-31T09:00:00",
+            "description": "发布时间；未发布时为空。",
+            "nullable": true
+          },
+          "versionNote": {
+            "type": "string",
+            "example": "示例值",
+            "description": "版本说明，可为空。",
+            "nullable": true
+          }
+        }
+      },
+      "EvaluationItemVO": {
+        "type": "object",
+        "description": "EvaluationItemVO 接口模型。",
+        "properties": {
+          "evaluationItemId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "评价项目 ID。"
+          },
+          "formVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "所属表单版本 ID。"
+          },
+          "itemCode": {
+            "type": "string",
+            "example": "示例值",
+            "description": "评价项目编码。"
+          },
+          "itemName": {
+            "type": "string",
+            "example": "示例值",
+            "description": "评价项目名称。"
+          },
+          "itemType": {
+            "type": "string",
+            "example": "SCORE",
+            "description": "评价项目类型。SCORE 打分项，按 maxScore 与 weight 参与计算；TEXT 文本项，只记录文字意见，不参与计分；CHOICE 选择项，记录选项结果，是否计分取决于关联的评分规则。",
+            "enum": [
+              "SCORE",
+              "TEXT",
+              "CHOICE"
+            ]
+          },
+          "maxScore": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "满分，可为空。",
+            "nullable": true
+          },
+          "weight": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "权重，可为空。",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "example": 1,
+            "description": "显示顺序。"
+          },
+          "isRequired": {
+            "type": "integer",
+            "example": 0,
+            "description": "是否必填。0 否，可留空；1 是，提交评价时必须填写。",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "EvaluationScoreRuleVO": {
+        "type": "object",
+        "description": "EvaluationScoreRuleVO 接口模型。",
+        "properties": {
+          "scoreRuleId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "评分规则 ID。"
+          },
+          "formVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "所属表单版本 ID。"
+          },
+          "evaluationItemId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "关联的评价项目 ID，由后端按 evaluationItemCode 回填。"
+          },
+          "calculationType": {
+            "type": "string",
+            "example": "WEIGHT",
+            "description": "基础计算类型。WEIGHT 权重折算，按 weight 将来源成绩折算后计入总分；ADJUSTMENT 加减分调整，按 scoreChange 在总分上直接加减（正数加分，负数减分）。",
+            "enum": [
+              "WEIGHT",
+              "ADJUSTMENT"
+            ]
+          },
+          "sourceType": {
+            "type": "string",
+            "example": "COURSE",
+            "description": "成绩来源类型。COURSE 课程学习成绩；EXAM 考试成绩；OFFLINE 线下培训成绩；REWARD_PENALTY 奖惩记录；MANUAL 人工录入。",
+            "enum": [
+              "COURSE",
+              "EXAM",
+              "OFFLINE",
+              "REWARD_PENALTY",
+              "MANUAL"
+            ]
+          },
+          "scoreChange": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "基础加减分值，正数加分、负数减分，可为空。",
+            "nullable": true
+          },
+          "weight": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "成绩权重，可为空。",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "example": 1,
+            "description": "显示顺序。"
+          },
+          "ruleDescription": {
+            "type": "string",
+            "example": "示例值",
+            "description": "评分规则说明。"
+          }
+        }
+      },
+      "ResultEnvelope": {
+        "type": "object",
+        "description": "统一响应外壳。",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码，0 表示成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息。",
+            "example": "success"
+          },
+          "data": {
+            "nullable": true,
+            "description": "业务响应数据。",
+            "example": null
+          }
+        }
+      },
+      "PageResultEvaluationFormVO": {
+        "type": "object",
+        "description": "EvaluationFormVO 分页结果。",
+        "required": [
+          "list",
+          "total"
+        ],
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页数据列表。",
+            "items": {
+              "$ref": "#/components/schemas/EvaluationFormVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "符合条件的总记录数。",
+            "example": 1
+          }
+        }
+      },
+      "EvaluationFormVersionSummaryList": {
+        "type": "array",
+        "description": "评价表单版本历史摘要。",
+        "items": {
+          "$ref": "#/components/schemas/EvaluationFormVersionSummaryVO"
+        }
+      },
+      "ResultPageResultEvaluationFormVO": {
+        "type": "object",
+        "description": "ResultPageResultEvaluationFormVO 统一成功响应。",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码，0 表示成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息。",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultEvaluationFormVO",
+            "description": "业务响应数据。"
+          }
+        }
+      },
+      "ResultEvaluationFormVO": {
+        "type": "object",
+        "description": "ResultEvaluationFormVO 统一成功响应。",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码，0 表示成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息。",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EvaluationFormVO",
+            "description": "业务响应数据。"
+          }
+        }
+      },
+      "ResultEvaluationFormVersionDetailVO": {
+        "type": "object",
+        "description": "ResultEvaluationFormVersionDetailVO 统一成功响应。",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码，0 表示成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息。",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EvaluationFormVersionDetailVO",
+            "description": "业务响应数据。"
+          }
+        }
+      },
+      "ResultEvaluationFormVersionSummaryList": {
+        "type": "object",
+        "description": "ResultEvaluationFormVersionSummaryList 统一成功响应。",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码，0 表示成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息。",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EvaluationFormVersionSummaryList",
+            "description": "业务响应数据。"
+          }
+        }
+      },
+      "ResultId": {
+        "type": "object",
+        "description": "ResultId 统一成功响应。",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码，0 表示成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息。",
+            "example": "success"
+          },
+          "data": {
+            "type": "integer",
+            "format": "int64",
+            "description": "新建记录主键。",
+            "example": 1
+          }
+        }
+      },
+      "ResultVoid": {
+        "type": "object",
+        "description": "ResultVoid 统一成功响应。",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码，0 表示成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息。",
+            "example": "success"
+          },
+          "data": {
+            "nullable": true,
+            "description": "无返回数据。",
+            "example": null
+          }
+        }
+      },
+      "EvaluationFormBusinessErrorCodes": {
+        "type": "object",
+        "description": "评价表单域业务错误码（8501-8507 段；供联调参考，与 Service 实现一一对应）。",
+        "properties": {
+          "8501": {
+            "type": "string",
+            "example": "评价表单不存在"
+          },
+          "8502": {
+            "type": "string",
+            "example": "同机构下表单编码已存在"
+          },
+          "8503": {
+            "type": "string",
+            "example": "评价表单版本不存在"
+          },
+          "8504": {
+            "type": "string",
+            "example": "评价表单版本冲突"
+          },
+          "8505": {
+            "type": "string",
+            "example": "评价项目不能为空"
+          },
+          "8506": {
+            "type": "string",
+            "example": "评分规则引用的评价项目编码不存在"
+          },
+          "8507": {
+            "type": "string",
+            "example": "评价表单已有发布版本，不可删除"
+          }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "未登录或登录已失效。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 1002,
+              "message": "未登录",
+              "data": null
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "缺少接口所需权限。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 1003,
+              "message": "权限不足",
+              "data": null
+            }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "参数校验失败，或发布内容不满足评价表单业务规则。声明式校验失败返回 1001；发布时项目为空返回 8505；评分规则引用的 evaluationItemCode 不在同批次项目中返回 8506。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 1001,
+              "message": "参数校验失败",
+              "data": null
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "目标评价表单或表单版本不存在。表单不存在返回 8501；表单版本不存在返回 8503。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 8501,
+              "message": "评价表单不存在",
+              "data": null
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "唯一约束冲突、乐观锁版本冲突或删除保护。表单编码重复返回 8502；version 与库中不一致返回 8504；表单已有发布版本时删除返回 8507。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 8504,
+              "message": "评价表单版本冲突",
+              "data": null
+            }
+          }
+        }
+      },
+      "ResultPageResultEvaluationFormVO": {
+        "description": "操作成功。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultPageResultEvaluationFormVO"
+            },
+            "example": {
+              "code": 0,
+              "message": "success",
+              "data": {
+                "list": [
+                  {
+                    "evaluationFormId": 3001,
+                    "organizationId": 1,
+                    "formCode": "EF-SPECIAL-2026",
+                    "formName": "特种作业综合评价表",
+                    "formType": "COMPOSITE",
+                    "currentVersionNo": 3,
+                    "status": 1,
+                    "description": "用于特种作业培训计划的综合成绩评价。",
+                    "version": 3,
+                    "createTime": "2026-03-01T10:00:00"
+                  },
+                  {
+                    "evaluationFormId": 3002,
+                    "organizationId": 1,
+                    "formCode": "EF-EXPERT-2026",
+                    "formName": "专家现场检查表",
+                    "formType": "EXPERT_INSPECTION",
+                    "currentVersionNo": 1,
+                    "status": 1,
+                    "description": "用于专家现场检查打分。",
+                    "version": 1,
+                    "createTime": "2026-04-18T09:30:00"
+                  }
+                ],
+                "total": 2
+              }
+            }
+          }
+        }
+      },
+      "ResultEvaluationFormVO": {
+        "description": "操作成功。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEvaluationFormVO"
+            },
+            "example": {
+              "code": 0,
+              "message": "success",
+              "data": {
+                "evaluationFormId": 3001,
+                "organizationId": 1,
+                "formCode": "EF-SPECIAL-2026",
+                "formName": "特种作业综合评价表",
+                "formType": "COMPOSITE",
+                "currentVersionNo": 3,
+                "status": 1,
+                "description": "用于特种作业培训计划的综合成绩评价。",
+                "version": 3,
+                "createTime": "2026-03-01T10:00:00"
+              }
+            }
+          }
+        }
+      },
+      "ResultEvaluationFormVersionDetailVO": {
+        "description": "操作成功。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEvaluationFormVersionDetailVO"
+            },
+            "example": {
+              "code": 0,
+              "message": "success",
+              "data": {
+                "formVersionId": 4101,
+                "evaluationFormId": 3001,
+                "versionNo": 3,
+                "totalScore": 100.0,
+                "publishedStatus": "PUBLISHED",
+                "publishedBy": 501,
+                "publishedTime": "2026-07-31T09:00:00",
+                "versionNote": "2026 年度特种作业综合评价表，调整实操权重。",
+                "items": [
+                  {
+                    "evaluationItemId": 9101,
+                    "formVersionId": 4101,
+                    "itemCode": "THEORY",
+                    "itemName": "理论考试成绩",
+                    "itemType": "SCORE",
+                    "maxScore": 60.0,
+                    "weight": 0.6,
+                    "sortOrder": 1,
+                    "isRequired": 1
+                  },
+                  {
+                    "evaluationItemId": 9102,
+                    "formVersionId": 4101,
+                    "itemCode": "PRACTICE",
+                    "itemName": "实操表现",
+                    "itemType": "SCORE",
+                    "maxScore": 40.0,
+                    "weight": 0.4,
+                    "sortOrder": 2,
+                    "isRequired": 1
+                  },
+                  {
+                    "evaluationItemId": 9103,
+                    "formVersionId": 4101,
+                    "itemCode": "REMARK",
+                    "itemName": "带训教师评语",
+                    "itemType": "TEXT",
+                    "maxScore": null,
+                    "weight": null,
+                    "sortOrder": 3,
+                    "isRequired": 0
+                  }
+                ],
+                "scoreRules": [
+                  {
+                    "scoreRuleId": 7201,
+                    "formVersionId": 4101,
+                    "evaluationItemId": 9101,
+                    "calculationType": "WEIGHT",
+                    "sourceType": "EXAM",
+                    "scoreChange": null,
+                    "weight": 0.6,
+                    "sortOrder": 1,
+                    "ruleDescription": "取培训计划内考试的正式成绩，按 60% 权重折算计入总分。"
+                  },
+                  {
+                    "scoreRuleId": 7202,
+                    "formVersionId": 4101,
+                    "evaluationItemId": 9102,
+                    "calculationType": "WEIGHT",
+                    "sourceType": "OFFLINE",
+                    "scoreChange": null,
+                    "weight": 0.4,
+                    "sortOrder": 2,
+                    "ruleDescription": "取线下实操成绩，按 40% 权重折算计入总分。"
+                  },
+                  {
+                    "scoreRuleId": 7203,
+                    "formVersionId": 4101,
+                    "evaluationItemId": 9102,
+                    "calculationType": "ADJUSTMENT",
+                    "sourceType": "REWARD_PENALTY",
+                    "scoreChange": -5.0,
+                    "weight": null,
+                    "sortOrder": 3,
+                    "ruleDescription": "存在违规扣分记录时，在总分基础上扣减 5 分。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "ResultEvaluationFormVersionSummaryList": {
+        "description": "操作成功。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEvaluationFormVersionSummaryList"
+            },
+            "example": {
+              "code": 0,
+              "message": "success",
+              "data": [
+                {
+                  "formVersionId": 4101,
+                  "evaluationFormId": 3001,
+                  "versionNo": 3,
+                  "publishedStatus": "PUBLISHED",
+                  "publishedBy": 501,
+                  "publishedTime": "2026-07-31T09:00:00",
+                  "versionNote": "2026 年度特种作业综合评价表，调整实操权重。"
+                },
+                {
+                  "formVersionId": 4055,
+                  "evaluationFormId": 3001,
+                  "versionNo": 2,
+                  "publishedStatus": "ARCHIVED",
+                  "publishedBy": 501,
+                  "publishedTime": "2026-05-12T14:20:00",
+                  "versionNote": null
+                }
+              ]
+            }
+          }
+        }
+      },
+      "ResultId": {
+        "description": "操作成功。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultId"
+            },
+            "example": {
+              "code": 0,
+              "message": "success",
+              "data": 1
+            }
+          }
+        }
+      },
+      "ResultVoid": {
+        "description": "操作成功。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultVoid"
+            },
+            "example": {
+              "code": 0,
+              "message": "success",
+              "data": null
+            }
+          }
+        }
+      }
+    }
+  }
+}

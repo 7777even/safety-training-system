@@ -1,0 +1,14 @@
+package com.sts.ops.vo;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OpsTodoCategoryVO {
+  private String code;
+  private String title;
+  private long count;
+}

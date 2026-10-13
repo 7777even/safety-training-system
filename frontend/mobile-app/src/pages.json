@@ -1,0 +1,187 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "首页"
+      }
+    },
+    {
+      "path": "pages/course/index",
+      "style": {
+        "navigationBarTitleText": "学习"
+      }
+    },
+    {
+      "path": "pages/course/detail",
+      "style": {
+        "navigationBarTitleText": "学习任务"
+      }
+    },
+    {
+      "path": "pages/course/learning",
+      "style": {
+        "navigationBarTitleText": "素材学习"
+      }
+    },
+    {
+      "path": "pages/course/assessment-attempt",
+      "style": {
+        "navigationBarTitleText": "课程作答"
+      }
+    },
+    {
+      "path": "pages/course/assessment-result",
+      "style": {
+        "navigationBarTitleText": "课程测验结果"
+      }
+    },
+    {
+      "path": "pages/exam/index",
+      "style": {
+        "navigationBarTitleText": "考试"
+      }
+    },
+    {
+      "path": "pages/exam/notice",
+      "style": {
+        "navigationBarTitleText": "考生须知"
+      }
+    },
+    {
+      "path": "pages/exam/attempt",
+      "style": {
+        "navigationBarTitleText": "考试作答"
+      }
+    },
+    {
+      "path": "pages/exam/result",
+      "style": {
+        "navigationBarTitleText": "考试结果"
+      }
+    },
+    {
+      "path": "pages/training/index",
+      "style": {
+        "navigationBarTitleText": "我的培训"
+      }
+    },
+    {
+      "path": "pages/training/detail",
+      "style": {
+        "navigationBarTitleText": "培训详情"
+      }
+    },
+    {
+      "path": "pages/training/offline-session",
+      "style": {
+        "navigationBarTitleText": "线下培训"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    },
+    {
+      "path": "pages/certificate/index",
+      "style": {
+        "navigationBarTitleText": "我的证书"
+      }
+    },
+    {
+      "path": "pages/archive/index",
+      "style": {
+        "navigationBarTitleText": "我的培训档案"
+      }
+    },
+    {
+      "path": "pages/auth/LoginPage",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/practice/index",
+      "style": {
+        "navigationBarTitleText": "练习与错题"
+      }
+    },
+    {
+      "path": "pages/practice/attempt",
+      "style": {
+        "navigationBarTitleText": "个人作答"
+      }
+    },
+    {
+      "path": "pages/personal-exam/index",
+      "style": {
+        "navigationBarTitleText": "我的考试"
+      }
+    },
+    {
+      "path": "pages/favorite-course/index",
+      "style": {
+        "navigationBarTitleText": "关注课程"
+      }
+    },
+    {
+      "path": "pages/teacher-follow/index",
+      "style": {
+        "navigationBarTitleText": "我的关注"
+      }
+    },
+    {
+      "path": "pages/messages/index",
+      "style": {
+        "navigationBarTitleText": "消息中心"
+      }
+    },
+    {
+      "path": "pages/profile/edit",
+      "style": {
+        "navigationBarTitleText": "资料与改密"
+      }
+    },
+    {
+      "path": "pages/history/index",
+      "style": {
+        "navigationBarTitleText": "统一学习档案"
+      }
+    }
+  ],
+  "tabBar": {
+    "color": "#64748B",
+    "selectedColor": "#2563EB",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/course/index",
+        "text": "学习"
+      },
+      {
+        "pagePath": "pages/exam/index",
+        "text": "考试"
+      },
+      {
+        "pagePath": "pages/training/index",
+        "text": "培训"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F8FAFC"
+  }
+}

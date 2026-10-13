@@ -1,0 +1,552 @@
+/* 业务工作台（考试、试卷、课程、培训）统一的信息呈现块。
+   页面只负责提供数据与结构，视觉规格集中在此文件，避免各工作台自行定义卡片、指标与留白。
+   命名空间统一使用 ws- 前缀，避免与既有 admin- 类名互相影响。 */
+
+/* ---------- 概览 hero：承载资源身份、状态与关键动作 ---------- */
+.ws-hero {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: 18px 20px;
+  flex-shrink: 0;
+  /* 裁掉装饰光晕溢出卡片右侧的部分：页面滚动容器会把绝对定位子元素的横向溢出计入可滚动区域，
+     在右侧撑出一条横向滚动条。光晕主体落在卡片内，被裁掉的部分原本就被滚动容器裁掉，观感不变。 */
+  overflow: hidden;
+  border: 1px solid #dbeafe;
+  border-radius: var(--radius-card);
+  background: linear-gradient(135deg, var(--color-primary-subtle), var(--color-bg-surface) 62%);
+}
+
+/* 右上角装饰圆，为纯白工作区提供轻微的方向感，不参与交互。
+   允许以负偏移超出卡片，由其父级 .ws-hero 的 overflow 裁剪，避免撑出横向滚动条。 */
+.ws-hero::after {
+  content: '';
+  position: absolute;
+  top: -52px;
+  right: -34px;
+  width: 152px;
+  height: 152px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(37 99 235 / 10%), transparent 68%);
+  pointer-events: none;
+}
+
+.ws-hero__main {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.ws-hero__eyebrow {
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.ws-hero__title-row {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.ws-hero__title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+  overflow-wrap: anywhere;
+}
+
+.ws-hero__meta {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.ws-hero__chip {
+  padding: 2px 9px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-hero__aside {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* 概览右侧的状态与时间，与左侧标题形成两端对齐。 */
+.ws-hero__state {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.ws-hero__state small {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* ---------- 指标卡：把关键数字从表格里提出来，使用统一字号与等宽数字 ---------- */
+.ws-metrics {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+}
+
+.ws-metric {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg-surface);
+}
+
+.ws-metric__label {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.ws-metric__value {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+
+.ws-metric__value em {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.ws-metric--accent {
+  border-color: #dbeafe;
+  background: var(--color-primary-subtle);
+}
+
+.ws-metric--accent .ws-metric__value {
+  color: var(--color-primary);
+}
+
+/* ---------- 分组白卡：同一业务段落只保留一个卡片边界 ---------- */
+.ws-section {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-3);
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-bg-surface);
+}
+
+.ws-section__head {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.ws-section__head > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.ws-section__head h2,
+.ws-section__head h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22px;
+}
+
+/* 标题左侧的品牌色短竖条，替代整块表头背景。 */
+.ws-section__head h2::before,
+.ws-section__head h3::before {
+  content: '';
+  width: 3px;
+  height: 13px;
+  flex: 0 0 3px;
+  border-radius: 2px;
+  background: var(--color-primary);
+}
+
+.ws-section__head p,
+.ws-section__extra {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.ws-section__extra {
+  flex: 0 0 auto;
+  padding-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 键值网格：替代高密度三列表格，长文本自动换行 ---------- */
+.ws-kv {
+  display: grid;
+  gap: 12px 24px;
+  grid-template-columns: repeat(auto-fit, minmax(212px, 1fr));
+}
+
+.ws-kv__item {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.ws-kv__item--span {
+  grid-column: 1 / -1;
+}
+
+.ws-kv__label {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.ws-kv__value {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+
+.ws-kv__value--muted {
+  color: var(--color-text-secondary);
+}
+
+.ws-kv__value--multiline {
+  white-space: pre-wrap;
+}
+
+/* ---------- 核查清单：用通过/待完善两态替代整段告警文字 ---------- */
+.ws-check-list {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(228px, 1fr));
+}
+
+.ws-check {
+  display: flex;
+  min-width: 0;
+  gap: var(--space-3);
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg-subtle);
+}
+
+.ws-check__icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 16px;
+}
+
+.ws-check__body {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.ws-check__body strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.ws-check__body span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.ws-check--pass {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.ws-check--pass .ws-check__icon {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.ws-check--fail {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.ws-check--fail .ws-check__icon {
+  background: #fee2e2;
+  color: var(--color-danger);
+}
+
+/* ---------- 表单分节：长表单按业务段落切分，避免一屏无分隔的字段流 ---------- */
+.ws-form-section {
+  display: grid;
+  gap: var(--space-3);
+  padding: 18px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-bg-surface);
+}
+
+.ws-form-section + .ws-form-section {
+  margin-top: var(--space-4);
+}
+
+.ws-form-section__head {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ws-form-section__index {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.ws-form-section__head > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.ws-form-section__head strong {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.ws-form-section__head p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* ---------- 内联提示条：分节内的补充说明不占用完整告警高度 ---------- */
+.ws-tip {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: 10px 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* ---------- 结果类页面的公共变体 ----------
+   成果、档案、问卷、证书共用同一套信息表达：结论色块、占比条、序号、空状态与列表项白卡。
+   这些规格集中在此，页面只选类名，不再各自声明同一外壳，避免同类样式在多页重复。 */
+
+/* 连续的白卡段落之间统一留白，页面无需再写相邻选择器。 */
+.ws-section + .ws-section {
+  margin-top: var(--space-4);
+}
+
+/* 指标卡语义变体：把结论（通过、未通过、待完整）直接落在卡片底色与数值色上。 */
+.ws-metric--pass {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.ws-metric--pass .ws-metric__value {
+  color: #15803d;
+}
+
+.ws-metric--fail {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.ws-metric--fail .ws-metric__value {
+  color: var(--color-danger);
+}
+
+.ws-metric--pending {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.ws-metric--pending .ws-metric__value {
+  color: #b45309;
+}
+
+/* 占比条：人数占比、答题进度、选项分布统一用一条 6px 圆角细条表达，不表示分数。 */
+.ws-bar {
+  display: grid;
+  gap: 6px;
+}
+
+.ws-bar__track {
+  overflow: hidden;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.ws-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-primary);
+  transition: width 0.3s ease;
+}
+
+.ws-bar__fill--pass {
+  background: #22c55e;
+}
+
+.ws-bar__fill--warn {
+  background: #f59e0b;
+}
+
+.ws-bar__legend {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 18px;
+}
+
+/* 序号徽章：题目、选项与统计分组的序号统一形态；方形变体用于选项键。 */
+.ws-index {
+  flex: 0 0 auto;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.ws-index--square {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  place-items: center;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+/* 空状态：实线用于整页无数据，虚线用于区块内无数据。 */
+.ws-empty {
+  display: grid;
+  place-items: center;
+  padding: var(--space-6) 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-bg-surface);
+}
+
+.ws-empty--dashed {
+  padding: var(--space-4) 0;
+  border-style: dashed;
+  background: var(--color-bg-subtle);
+}
+
+.ws-empty__hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* 列表项白卡：题目、证书元素、统计分组共用外壳，相邻卡片自动留白。 */
+.ws-item-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-bg-surface);
+}
+
+.ws-item-card + .ws-item-card {
+  margin-top: var(--space-3);
+}
+
+/* 辅助说明文字：次要色小字，替代各页重复声明同一字号与颜色。 */
+.ws-hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+@media (max-width: 900px) {
+  .ws-hero {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .ws-hero__state {
+    justify-items: start;
+  }
+}

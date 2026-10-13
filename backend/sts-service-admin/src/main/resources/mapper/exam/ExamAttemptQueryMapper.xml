@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sts.exam.mapper.ExamAttemptQueryMapper">
+
+  <sql id="learnerFields">
+    a.user_id AS learnerUserId,
+    COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.candidate_profile_snapshot_json, '$.userName')), u.user_name) AS learnerName,
+    COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.candidate_profile_snapshot_json, '$.userCode')), u.user_code) AS learnerCode,
+    c.organization_id AS learnerOrganizationId,
+    org.org_name AS learnerOrganizationName
+  </sql>
+
+  <select id="selectReviewTaskPage" resultType="com.sts.exam.vo.ExamReviewTaskVO">
+    SELECT
+    x.assessment_execution_id AS assessmentExecutionId,
+    x.source_type AS sourceType,
+    x.source_business_id AS sourceBusinessId,
+    COALESCE(e.exam_name, CONCAT(course.course_name, ' / ', ci.item_title),
+    JSON_UNQUOTE(JSON_EXTRACT(x.snapshot_json, '$.resource.name'))) AS sourceName,
+    e.exam_id AS examId,
+    e.exam_name AS examName,
+    course.course_id AS courseId,
+    course.course_name AS courseName,
+    x.course_offering_id AS courseOfferingId,
+    x.course_item_id AS courseItemId,
+    ci.item_title AS courseItemTitle,
+    c.exam_candidate_id AS examCandidateId,
+    a.exam_attempt_id AS examAttemptId,
+    a.attempt_no AS attemptNo,
+    a.attempt_status AS attemptStatus,
+    ans.exam_answer_id AS examAnswerId,
+    q.attempt_question_id AS attemptQuestionId,
+    q.question_type AS questionType,
+    q.stem_snapshot AS stemSnapshot,
+    q.score,
+    ans.answer_text AS answerText,
+    JSON_UNQUOTE(JSON_EXTRACT(q.correct_answer_snapshot_json, '$.standardAnswer')) AS standardAnswer,
+    <include refid="learnerFields"/>,
+    a.submitted_time AS submittedTime,
+    CASE WHEN ans.grading_status = 'PENDING_MANUAL' THEN 'PENDING' ELSE 'REVIEWED' END AS reviewStatus,
+    rr.after_score AS latestManualScore,
+    rr.review_comment AS latestReviewComment,
+    rr.reviewed_time AS latestReviewedTime,
+    CASE
+    WHEN a.attempt_status = 'RESULT_EFFECTIVE' AND a.result_effective_time IS NOT NULL THEN 'EFFECTIVE'
+    WHEN a.attempt_status = 'PUBLISHED' AND a.score_published_time IS NOT NULL THEN 'PUBLISHED'
+    ELSE 'UNPUBLISHED' END AS scorePublishStatus,
+    a.score_published_time AS scorePublishedTime
+    FROM sts_exam_reviewer er
+    JOIN sts_assessment_execution x ON x.assessment_execution_id = er.assessment_execution_id AND x.deleted = 0
+    LEFT JOIN sts_exam_exam e ON e.exam_id = x.exam_id AND e.deleted = 0
+    LEFT JOIN sts_course_offering co ON co.course_offering_id = x.course_offering_id AND co.deleted = 0
+    LEFT JOIN sts_course_course course ON course.course_id = co.course_id AND course.deleted = 0
+    LEFT JOIN sts_course_item ci ON ci.course_item_id = x.course_item_id AND ci.deleted = 0
+    JOIN sts_exam_attempt a ON a.assessment_execution_id = x.assessment_execution_id AND a.deleted = 0
+    JOIN sts_exam_candidate c ON c.exam_candidate_id = a.exam_candidate_id AND c.deleted = 0
+    LEFT JOIN us_sys_user u ON u.user_id = a.user_id AND u.deleted = 0
+    JOIN sts_exam_attempt_question q ON q.exam_attempt_id = a.exam_attempt_id
+    AND (q.grading_mode = 'MANUAL' OR q.question_type = 'ESSAY')
+    JOIN sts_exam_answer ans ON ans.exam_attempt_id = a.exam_attempt_id
+    AND ans.attempt_question_id = q.attempt_question_id AND ans.deleted = 0
+    LEFT JOIN sts_org_organization org ON org.organization_id = c.organization_id AND org.deleted = 0
+    LEFT JOIN sts_exam_review_record rr ON rr.exam_answer_id = ans.exam_answer_id
+    AND NOT EXISTS (
+    SELECT 1 FROM sts_exam_review_record newer
+    WHERE newer.exam_answer_id = rr.exam_answer_id
+    AND (newer.reviewed_time &gt; rr.reviewed_time
+    OR (newer.reviewed_time = rr.reviewed_time AND newer.review_record_id &gt; rr.review_record_id))
+    )
+    WHERE er.reviewer_user_id = #{reviewerUserId}
+    <choose>
+      <when test="courseOnly">
+        AND x.source_type = 'COURSE_QUIZ'
+        AND x.assessment_execution_id = #{assessmentExecutionId}
+      </when>
+      <otherwise>
+        AND x.source_type IN ('STANDALONE_EXAM', 'STANDALONE_PRACTICE', 'TRAINING_EXAM')
+      </otherwise>
+    </choose>
+    AND a.attempt_status IN ('PENDING_REVIEW', 'PENDING_PUBLISH', 'PUBLISHED')
+    <if test="query != null and query.examId != null">
+      AND e.exam_id = #{query.examId}
+    </if>
+    <if test="query != null and query.reviewStatus != null and query.reviewStatus != ''">
+      <choose>
+        <when test="query.reviewStatus == 'PENDING'">
+          AND ans.grading_status = 'PENDING_MANUAL'
+        </when>
+        <when test="query.reviewStatus == 'REVIEWED'">
+          AND ans.grading_status != 'PENDING_MANUAL'
+        </when>
+        <otherwise>
+          AND 1 = 0
+        </otherwise>
+      </choose>
+    </if>
+    <if test="query != null and query.learnerKeyword != null and query.learnerKeyword != ''">
+      AND (
+      COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.candidate_profile_snapshot_json, '$.userName')), u.user_name)
+      LIKE CONCAT('%', #{query.learnerKeyword}, '%')
+      OR COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.candidate_profile_snapshot_json, '$.userCode')), u.user_code)
+      LIKE CONCAT('%', #{query.learnerKeyword}, '%')
+      )
+    </if>
+    <if test="query != null and query.submittedStartTime != null">
+      AND a.submitted_time &gt;= #{query.submittedStartTime}
+    </if>
+    <if test="query != null and query.submittedEndTime != null">
+      AND a.submitted_time &lt;= #{query.submittedEndTime}
+    </if>
+    ORDER BY CASE WHEN ans.grading_status = 'PENDING_MANUAL' THEN 0 ELSE 1 END,
+    a.submitted_time, ans.exam_answer_id
+  </select>
+
+  <select id="selectAttemptPage" resultType="com.sts.exam.vo.ExamAttemptRecordVO">
+    SELECT
+    x.assessment_execution_id AS assessmentExecutionId,
+    x.source_type AS sourceType,
+    x.source_business_id AS sourceBusinessId,
+    COALESCE(e.exam_name, CONCAT(course.course_name, ' / ', ci.item_title),
+    JSON_UNQUOTE(JSON_EXTRACT(x.snapshot_json, '$.resource.name'))) AS sourceName,
+    e.exam_id AS examId,
+    e.exam_name AS examName,
+    course.course_id AS courseId,
+    course.course_name AS courseName,
+    x.course_offering_id AS courseOfferingId,
+    x.course_item_id AS courseItemId,
+    ci.item_title AS courseItemTitle,
+    c.exam_candidate_id AS examCandidateId,
+    a.exam_attempt_id AS examAttemptId,
+    a.attempt_no AS attemptNo,
+    a.attempt_type AS attemptType,
+    a.attempt_status AS attemptStatus,
+    <include refid="learnerFields"/>,
+    a.started_time AS startedTime,
+    a.submitted_time AS submittedTime,
+    a.used_seconds AS usedSeconds,
+    CASE
+    WHEN NOT EXISTS (
+    SELECT 1 FROM sts_exam_attempt_question mq
+    WHERE mq.exam_attempt_id = a.exam_attempt_id AND (mq.grading_mode = 'MANUAL' OR mq.question_type = 'ESSAY')
+    ) THEN 'NOT_REQUIRED'
+    WHEN EXISTS (
+    SELECT 1 FROM sts_exam_answer ma
+    JOIN sts_exam_attempt_question mq ON mq.attempt_question_id = ma.attempt_question_id
+    WHERE ma.exam_attempt_id = a.exam_attempt_id AND ma.grading_status = 'PENDING_MANUAL'
+    AND ma.deleted = 0 AND (mq.grading_mode = 'MANUAL' OR mq.question_type = 'ESSAY')
+    ) OR a.review_completed_time IS NULL THEN 'PENDING'
+    ELSE 'COMPLETED'
+    END AS reviewStatus,
+    a.review_completed_time AS reviewCompletedTime,
+    a.objective_score AS objectiveScore,
+    a.subjective_score AS subjectiveScore,
+    a.final_score AS finalScore,
+    a.is_passed AS isPassed,
+    CASE WHEN a.attempt_status = 'PUBLISHED' AND a.score_published_time IS NOT NULL
+    THEN 'PUBLISHED' ELSE 'UNPUBLISHED' END AS scorePublishStatus,
+    a.score_published_time AS scorePublishedTime
+    FROM sts_exam_attempt a
+    JOIN sts_assessment_execution x ON x.assessment_execution_id = a.assessment_execution_id AND x.deleted = 0
+    LEFT JOIN sts_exam_exam e ON e.exam_id = x.exam_id AND e.deleted = 0
+    LEFT JOIN sts_course_offering co ON co.course_offering_id = x.course_offering_id AND co.deleted = 0
+    LEFT JOIN sts_course_course course ON course.course_id = co.course_id AND course.deleted = 0
+    LEFT JOIN sts_course_item ci ON ci.course_item_id = x.course_item_id AND ci.deleted = 0
+    JOIN sts_exam_candidate c ON c.exam_candidate_id = a.exam_candidate_id AND c.deleted = 0
+    LEFT JOIN us_sys_user u ON u.user_id = a.user_id AND u.deleted = 0
+    LEFT JOIN sts_org_organization org ON org.organization_id = c.organization_id AND org.deleted = 0
+    WHERE a.deleted = 0
+    AND x.source_type IN ('STANDALONE_EXAM', 'STANDALONE_PRACTICE', 'TRAINING_EXAM')
+    <!-- 租户条件由 TenantLineInnerInterceptor 自动注入到各业务表 -->
+    <if test="query != null and query.examId != null">
+      AND e.exam_id = #{query.examId}
+    </if>
+    <if test="query != null and query.attemptStatus != null and query.attemptStatus != ''">
+      AND a.attempt_status = #{query.attemptStatus}
+    </if>
+    <if test="query != null and query.scorePublishStatus != null and query.scorePublishStatus != ''">
+      <choose>
+        <when test="query.scorePublishStatus == 'PUBLISHED'">
+          AND a.attempt_status = 'PUBLISHED' AND a.score_published_time IS NOT NULL
+        </when>
+        <when test="query.scorePublishStatus == 'EFFECTIVE'">
+          AND a.attempt_status = 'RESULT_EFFECTIVE' AND a.result_effective_time IS NOT NULL
+        </when>
+        <when test="query.scorePublishStatus == 'UNPUBLISHED'">
+          AND NOT ((a.attempt_status = 'PUBLISHED' AND a.score_published_time IS NOT NULL)
+            OR (a.attempt_status = 'RESULT_EFFECTIVE' AND a.result_effective_time IS NOT NULL))
+        </when>
+        <otherwise>
+          AND 1 = 0
+        </otherwise>
+      </choose>
+    </if>
+    <if test="query != null and query.reviewStatus != null and query.reviewStatus != ''">
+      <choose>
+        <when test="query.reviewStatus == 'NOT_REQUIRED'">
+          AND NOT EXISTS (
+          SELECT 1 FROM sts_exam_attempt_question mq
+          WHERE mq.exam_attempt_id = a.exam_attempt_id AND (mq.grading_mode = 'MANUAL' OR mq.question_type = 'ESSAY')
+          )
+        </when>
+        <when test="query.reviewStatus == 'PENDING'">
+          AND EXISTS (
+          SELECT 1 FROM sts_exam_attempt_question mq
+          WHERE mq.exam_attempt_id = a.exam_attempt_id AND (mq.grading_mode = 'MANUAL' OR mq.question_type = 'ESSAY')
+          )
+          AND (a.review_completed_time IS NULL OR EXISTS (
+          SELECT 1 FROM sts_exam_answer ma
+          JOIN sts_exam_attempt_question mq ON mq.attempt_question_id = ma.attempt_question_id
+          WHERE ma.exam_attempt_id = a.exam_attempt_id AND ma.grading_status = 'PENDING_MANUAL'
+          AND ma.deleted = 0 AND (mq.grading_mode = 'MANUAL' OR mq.question_type = 'ESSAY')
+          ))
+        </when>
+        <when test="query.reviewStatus == 'COMPLETED'">
+          AND a.review_completed_time IS NOT NULL
+          AND EXISTS (
+          SELECT 1 FROM sts_exam_attempt_question mq
+          WHERE mq.exam_attempt_id = a.exam_attempt_id AND (mq.grading_mode = 'MANUAL' OR mq.question_type = 'ESSAY')
+          )
+          AND NOT EXISTS (
+          SELECT 1 FROM sts_exam_answer ma
+          JOIN sts_exam_attempt_question mq ON mq.attempt_question_id = ma.attempt_question_id
+          WHERE ma.exam_attempt_id = a.exam_attempt_id AND ma.grading_status = 'PENDING_MANUAL'
+          AND ma.deleted = 0 AND (mq.grading_mode = 'MANUAL' OR mq.question_type = 'ESSAY')
+          )
+        </when>
+        <otherwise>
+          AND 1 = 0
+        </otherwise>
+      </choose>
+    </if>
+    <if test="query != null and query.learnerKeyword != null and query.learnerKeyword != ''">
+      AND (
+      COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.candidate_profile_snapshot_json, '$.userName')), u.user_name)
+      LIKE CONCAT('%', #{query.learnerKeyword}, '%')
+      OR COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.candidate_profile_snapshot_json, '$.userCode')), u.user_code)
+      LIKE CONCAT('%', #{query.learnerKeyword}, '%')
+      )
+    </if>
+    <if test="query != null and query.submittedStartTime != null">
+      AND a.submitted_time &gt;= #{query.submittedStartTime}
+    </if>
+    <if test="query != null and query.submittedEndTime != null">
+      AND a.submitted_time &lt;= #{query.submittedEndTime}
+    </if>
+    ORDER BY COALESCE(a.submitted_time, a.create_time) DESC, a.exam_attempt_id DESC
+  </select>
+</mapper>

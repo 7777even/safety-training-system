@@ -1,0 +1,16 @@
+{
+  "name": "@safety/shared",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint src --max-warnings=0",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "js-sha256": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

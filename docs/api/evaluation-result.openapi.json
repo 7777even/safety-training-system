@@ -1,0 +1,657 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "综合结果 API 契约",
+    "version": "1.0.1",
+    "description": "STS M4 EVALUATION RESULT：专家查课与评价记录查询。综合计算批次不再对外提供。错误码 8700-8899。"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "sts-service-admin context path"
+    }
+  ],
+  "tags": [
+    {
+      "name": "EvaluationResultController",
+      "description": "专家查课提交、计划查课摘要与评价记录只读查询。"
+    }
+  ],
+  "paths": {
+    "/api/evaluation/expert-inspections/submit": {
+      "post": {
+        "summary": "提交专家查课记录",
+        "description": "同时要求 `evaluation:record:add` 与 `evaluation:record:submit`；仅执行中计划内已绑定的课程可一次性提交，评价人由登录态派生。错误码：8101 培训计划不存在；8703 该课程已提交此专家查课表；8704 查课对象、表单、项目答案或计划状态不符合要求。",
+        "tags": [
+          "EvaluationResultController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "evaluation:record:add,evaluation:record:submit",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpertInspectionSubmitRequest"
+              },
+              "example": {
+                "trainingPlanId": 1,
+                "planContentId": 10,
+                "formVersionId": 3,
+                "summary": "授课组织规范",
+                "items": [
+                  {
+                    "evaluationItemId": 11,
+                    "score": 90
+                  },
+                  {
+                    "evaluationItemId": 12,
+                    "textValue": "建议补充互动环节"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultEvaluationRecordVO"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/training/plans/{trainingPlanId}/expert-inspections": {
+      "get": {
+        "summary": "查询计划课程专家查课状态",
+        "description": "权限：`training:plan:list`。返回计划内课程及当前专家检查绑定版本的已提交摘要。错误码：8101 培训计划不存在。",
+        "tags": [
+          "EvaluationResultController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "training:plan:list",
+        "parameters": [
+          {
+            "name": "trainingPlanId",
+            "in": "path",
+            "required": true,
+            "description": "培训计划 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultExpertInspectionSummaryList"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/evaluation/records/{evaluationRecordId}": {
+      "get": {
+        "summary": "查询评价记录详情",
+        "description": "权限：`evaluation:record:list`。错误码：8701 评价记录不存在。",
+        "tags": [
+          "EvaluationResultController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "evaluation:record:list",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ResultEvaluationRecordVO"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "parameters": [
+          {
+            "name": "evaluationRecordId",
+            "in": "path",
+            "required": true,
+            "description": "评价记录 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "登录访问令牌。"
+      }
+    },
+    "schemas": {
+      "ResultEnvelope": {
+        "type": "object",
+        "description": "统一响应外壳。",
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码，0 表示成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息。",
+            "example": "success"
+          },
+          "data": {
+            "description": "业务响应数据，具体类型由 operation 声明。",
+            "nullable": true
+          }
+        }
+      },
+      "ExpertInspectionSubmitRequest": {
+        "type": "object",
+        "description": "专家对计划内单门课程一次性提交的查课记录；不接收评价人。",
+        "properties": {
+          "trainingPlanId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "培训计划 ID。"
+          },
+          "planContentId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10,
+            "description": "计划课程内容 ID。"
+          },
+          "formVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 3,
+            "description": "已绑定专家检查表版本 ID。"
+          },
+          "summary": {
+            "type": "string",
+            "example": "授课组织规范",
+            "description": "可选查课摘要。"
+          },
+          "items": {
+            "type": "array",
+            "description": "逐检查项目答案。",
+            "items": {
+              "$ref": "#/components/schemas/EvaluationRecordItemRequest"
+            }
+          }
+        },
+        "required": [
+          "trainingPlanId",
+          "planContentId",
+          "formVersionId",
+          "items"
+        ]
+      },
+      "ExpertInspectionSummaryVO": {
+        "type": "object",
+        "description": "计划课程的专家查课提交状态与只读摘要。",
+        "properties": {
+          "planContentId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10,
+            "description": "计划课程内容 ID。"
+          },
+          "contentName": {
+            "type": "string",
+            "example": "危化品安全课程",
+            "description": "课程内容名称。"
+          },
+          "formVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 3,
+            "description": "专家检查版本 ID。"
+          },
+          "versionNo": {
+            "type": "integer",
+            "example": 2,
+            "description": "专家检查表版本号。"
+          },
+          "evaluationRecordId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "example": 20,
+            "description": "已提交记录 ID。"
+          },
+          "recordStatus": {
+            "type": "string",
+            "nullable": true,
+            "example": "SUBMITTED",
+            "description": "评价记录状态；未提交时为空。"
+          },
+          "evaluatorUserId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "example": 1001,
+            "description": "登录态派生的评价人用户 ID。"
+          },
+          "evaluatorName": {
+            "type": "string",
+            "nullable": true,
+            "example": "张专家",
+            "description": "登录态派生的评价人名称。"
+          },
+          "submittedTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2026-09-16T09:00:00",
+            "description": "提交时间。"
+          },
+          "totalScore": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "example": 90,
+            "description": "总分。"
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true,
+            "example": "授课组织规范",
+            "description": "查课摘要。"
+          }
+        },
+        "required": [
+          "planContentId",
+          "contentName",
+          "formVersionId"
+        ]
+      },
+      "EvaluationRecordItemRequest": {
+        "type": "object",
+        "description": "专家查课逐检查项提交值。",
+        "properties": {
+          "evaluationItemId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "评价项目 ID。"
+          },
+          "score": {
+            "type": "number",
+            "format": "double",
+            "example": 90,
+            "description": "数值型项目得分；非数值项目可为空。",
+            "nullable": true
+          },
+          "textValue": {
+            "type": "string",
+            "example": "建议补充互动环节",
+            "description": "文本型项目填写内容；非文本项目可为空。",
+            "nullable": true
+          },
+          "optionValue": {
+            "type": "string",
+            "example": "规范",
+            "description": "选项型项目选择值；非选项项目可为空。",
+            "nullable": true
+          }
+        },
+        "required": [
+          "evaluationItemId"
+        ]
+      },
+      "EvaluationRecordItemVO": {
+        "type": "object",
+        "description": "评价记录逐项目结果。",
+        "properties": {
+          "recordItemId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "评价记录项目 ID。"
+          },
+          "evaluationItemId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "评价项目 ID。"
+          },
+          "score": {
+            "type": "number",
+            "format": "double",
+            "example": 90,
+            "description": "数值型项目得分。",
+            "nullable": true
+          },
+          "textValue": {
+            "type": "string",
+            "example": "建议补充互动环节",
+            "description": "文本型项目填写内容。",
+            "nullable": true
+          },
+          "optionValue": {
+            "type": "string",
+            "example": "规范",
+            "description": "选项型项目选择值。",
+            "nullable": true
+          }
+        }
+      },
+      "EvaluationRecordVO": {
+        "type": "object",
+        "description": "已提交评价记录详情。",
+        "properties": {
+          "evaluationRecordId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "评价记录 ID。"
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "所属机构 ID。"
+          },
+          "formVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "评价表单版本 ID。"
+          },
+          "targetType": {
+            "type": "string",
+            "example": "TRAINING_CONTENT",
+            "description": "评价目标类型。"
+          },
+          "targetId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "评价目标 ID。"
+          },
+          "evaluatorUserId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1001,
+            "description": "从提交登录态派生的评价人用户 ID。"
+          },
+          "totalScore": {
+            "type": "number",
+            "format": "double",
+            "example": 90,
+            "description": "评价总分。",
+            "nullable": true
+          },
+          "recordStatus": {
+            "type": "string",
+            "example": "SUBMITTED",
+            "description": "评价记录状态。"
+          },
+          "submittedTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-31T09:00:00",
+            "description": "提交时间。"
+          },
+          "summary": {
+            "type": "string",
+            "example": "授课组织规范",
+            "description": "评价摘要。",
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "example": 1,
+            "description": "乐观锁版本号。"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvaluationRecordItemVO"
+            },
+            "description": "逐项目评价结果。"
+          }
+        }
+      },
+      "ResultEvaluationRecordVO": {
+        "type": "object",
+        "description": "ResultEvaluationRecordVO 统一成功响应。",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码，0 表示成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息。",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EvaluationRecordVO",
+            "description": "业务响应数据。"
+          }
+        }
+      }
+    },
+    "responses": {
+      "ResultExpertInspectionSummaryList": {
+        "description": "专家查课状态列表。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ResultEnvelope"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ExpertInspectionSummaryVO"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "example": {
+              "code": 0,
+              "message": "success",
+              "data": [
+                {
+                  "planContentId": 10,
+                  "contentName": "危化品安全课程",
+                  "formVersionId": 3,
+                  "versionNo": 2,
+                  "evaluationRecordId": 20,
+                  "recordStatus": "SUBMITTED",
+                  "evaluatorUserId": 1001,
+                  "evaluatorName": "张专家",
+                  "submittedTime": "2026-09-16T09:00:00",
+                  "totalScore": 90,
+                  "summary": "授课组织规范"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "未登录或登录已失效。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 1002,
+              "message": "未登录",
+              "data": null
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "无接口权限或数据范围权限。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 1003,
+              "message": "无权限访问",
+              "data": null
+            }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "请求参数或业务前置条件不满足。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 8701,
+              "message": "请求参数不合法",
+              "data": null
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "评价记录、培训计划或表单版本不存在。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 8701,
+              "message": "评价记录不存在",
+              "data": null
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "计划状态、重复提交或其他业务状态冲突。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 8804,
+              "message": "当前状态不允许提交",
+              "data": null
+            }
+          }
+        }
+      },
+      "ResultEvaluationRecordVO": {
+        "description": "操作成功。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEvaluationRecordVO"
+            },
+            "example": {
+              "code": 0,
+              "message": "success",
+              "data": {
+                "evaluationRecordId": 1,
+                "organizationId": 1,
+                "formVersionId": 3,
+                "targetType": "TRAINING_CONTENT",
+                "targetId": 10,
+                "evaluatorUserId": 1001,
+                "totalScore": 90,
+                "recordStatus": "SUBMITTED",
+                "submittedTime": "2026-09-16T09:00:00",
+                "summary": "授课组织规范",
+                "version": 1,
+                "items": [
+                  {
+                    "recordItemId": 31,
+                    "evaluationItemId": 11,
+                    "score": 90,
+                    "textValue": null,
+                    "optionValue": null
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

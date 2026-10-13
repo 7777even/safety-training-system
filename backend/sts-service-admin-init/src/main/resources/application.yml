@@ -1,0 +1,15 @@
+spring:
+    main:
+        web-application-type: none
+    application:
+        name: sts-service-admin-init
+    profiles:
+      active: test
+    flyway:
+      enabled: false
+
+sts:
+    init:
+        enabled: true
+        schema-version: 20261012100000
+        root-dept-name: 发展管委会

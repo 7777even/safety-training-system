@@ -1,0 +1,43 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "监管平台跨租户能力 API 契约",
+    "version": "2.0.0",
+    "description": "监管平台切换查看视角的 X-Target-Tenant-Id 请求头。园区统计已并入 regulation.openapi.json 的工作台接口，不再提供 /regulator/aggregates/tenants。错误码 4061-4065。"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "sts-service-admin context path"
+    }
+  ],
+  "tags": [
+    {
+      "name": "视角切换",
+      "description": "X-Target-Tenant-Id 请求头，适用于全部业务只读接口"
+    }
+  ],
+  "paths": {},
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "parameters": {
+      "TargetTenantId": {
+        "name": "X-Target-Tenant-Id",
+        "in": "header",
+        "required": false,
+        "description": "监管平台切换查看视角的目标企业或培训机构租户 ID。仅 REGULATOR 租户可提交。非 REGULATOR 返回 403（4061）；切换视角下仅允许 GET/HEAD/OPTIONS，写操作 403（4062）；目标不存在、停用或不是受监管租户统一 404（4063）；非数字 400（4064）。",
+        "schema": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "example": 42
+      }
+    }
+  }
+}

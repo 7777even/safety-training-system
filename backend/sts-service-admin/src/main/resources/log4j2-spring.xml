@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+  <Properties>
+    <!-- 相对路径以应用启动时的当前工作目录为基准 -->
+    <Property name="LOG_PATH">log</Property>
+    <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{requestId}] ${sys:PID} --- [%15.15t]
+      %-40.40logger{39} : %msg%n%throwable
+    </Property>
+  </Properties>
+
+  <Appenders>
+    <Console name="CONSOLE" target="SYSTEM_OUT">
+      <PatternLayout pattern="${LOG_PATTERN}" charset="UTF-8"/>
+    </Console>
+
+    <RollingFile name="INFO_FILE"
+                 fileName="${LOG_PATH}/info.log"
+                 filePattern="${LOG_PATH}/info.%d{yyyy-MM-dd}.%i.log.gz">
+      <LevelMatchFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+      <PatternLayout pattern="${LOG_PATTERN}" charset="UTF-8"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="128 MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="30"/>
+    </RollingFile>
+
+    <RollingFile name="WARN_FILE"
+                 fileName="${LOG_PATH}/warn.log"
+                 filePattern="${LOG_PATH}/warn.%d{yyyy-MM-dd}.%i.log.gz">
+      <LevelMatchFilter level="WARN" onMatch="ACCEPT" onMismatch="DENY"/>
+      <PatternLayout pattern="${LOG_PATTERN}" charset="UTF-8"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="128 MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="30"/>
+    </RollingFile>
+
+    <RollingFile name="ERROR_FILE"
+                 fileName="${LOG_PATH}/error.log"
+                 filePattern="${LOG_PATH}/error.%d{yyyy-MM-dd}.%i.log.gz">
+      <LevelMatchFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+      <PatternLayout pattern="${LOG_PATTERN}" charset="UTF-8"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="128 MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="30"/>
+    </RollingFile>
+
+    <Async name="ASYNC_FILES" bufferSize="512" blocking="true" includeLocation="false">
+      <AppenderRef ref="INFO_FILE"/>
+      <AppenderRef ref="WARN_FILE"/>
+      <AppenderRef ref="ERROR_FILE"/>
+    </Async>
+  </Appenders>
+
+  <Loggers>
+    <Root level="INFO">
+      <AppenderRef ref="ASYNC_FILES"/>
+      <AppenderRef ref="CONSOLE"/>
+    </Root>
+  </Loggers>
+</Configuration>

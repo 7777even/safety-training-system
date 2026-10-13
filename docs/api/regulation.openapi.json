@@ -1,0 +1,2877 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "园区监管工作台、学习统计与学时预警 API 契约",
+    "version": "2.0.1",
+    "description": "STS M5 监管闭环：园区工作台、学习情况统计、培训计划学时预警与目标企业培训只读下钻。规则 CRUD、手工检测和人工处置已删除。鉴权 Bearer；非监管租户访问跨租户接口返回 403/4065。"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "sts-service-admin context path"
+    }
+  ],
+  "tags": [
+    {
+      "name": "RegulationController",
+      "description": "园区监管工作台、学习统计、学时预警以及目标机构培训只读下钻。"
+    }
+  ],
+  "paths": {
+    "/api/regulation/workbench": {
+      "get": {
+        "summary": "园区监管工作台",
+        "description": "权限：`regulation:overview:view`。仅 REGULATOR 租户。返回企业/培训机构、计划、特种作业、待查看预警和快捷入口；快捷入口不绕过目标模块权限。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:overview:view",
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultRegulationWorkbenchVO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "enterpriseCount": 10,
+                    "trainingInstitutionCount": 2,
+                    "planTotalCount": 30,
+                    "runningPlanCount": 8,
+                    "endedPlanCount": 12,
+                    "participantCount": 400,
+                    "completedParticipantCount": 210,
+                    "unreadWarningCount": 3,
+                    "trainingTypeDistribution": [
+                      {
+                        "trainingTypeId": 1,
+                        "typeName": "特种作业",
+                        "planCount": 5
+                      }
+                    ],
+                    "specialOperation": {
+                      "planCount": 5,
+                      "participantCount": 40,
+                      "completedParticipantCount": 20
+                    },
+                    "institutions": [
+                      {
+                        "organizationId": 2,
+                        "orgCode": "ACME",
+                        "orgName": "示范企业",
+                        "orgType": "ENTERPRISE",
+                        "planCount": 4,
+                        "participantCount": 80
+                      }
+                    ],
+                    "shortcuts": [
+                      {
+                        "code": "CERTIFICATE",
+                        "title": "证书管理",
+                        "path": "/admin/result/certificate/certificates",
+                        "permission": "certificate:cert:list",
+                        "granted": true
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/regulation/institutions/export": {
+      "get": {
+        "summary": "导出机构统计 CSV",
+        "description": "权限：`regulation:learning:export`。返回 UTF-8 BOM CSV，列与工作台机构列表一致。超过 10000 行返回 400/9820。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:learning:export",
+        "responses": {
+          "200": {
+            "description": "CSV 文件。",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "example": "organizationId,orgCode,orgName,orgType,planCount,participantCount"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/regulation/learning-stats": {
+      "get": {
+        "summary": "学习情况统计",
+        "description": "权限：`regulation:learning:view`。不传 organizationId 为园区汇总；传入则为单机构。口径：员工账号数、上课次数、上课人数、参与课程数、人均上课次数、参与率。零分母为 0。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:learning:view",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "query",
+            "description": "受监管机构 ID；空表示园区汇总。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 2
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultLearningStatsVO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "employeeAccountCount": 100,
+                    "classSessionCount": 40,
+                    "classLearnerCount": 20,
+                    "participatingOfferingCount": 8,
+                    "avgSessionsPerLearner": 2,
+                    "participationRate": 0.2,
+                    "institutions": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/regulation/learning-stats/learners": {
+      "get": {
+        "summary": "上课人数下钻",
+        "description": "权限：`regulation:learning:view`。返回至少参加一个开课的学员及开课数。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:learning:view",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "query",
+            "description": "受监管机构 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 2
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultLearningLearnerRowList"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": [
+                    {
+                      "userId": 9,
+                      "userName": "张三",
+                      "userCode": "zhang",
+                      "organizationId": 2,
+                      "orgName": "示例企业",
+                      "offeringCount": 3
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/regulation/learning-stats/offerings": {
+      "get": {
+        "summary": "参与课程下钻",
+        "description": "权限：`regulation:learning:view`。返回至少有一名学员参加的开课。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:learning:view",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "query",
+            "description": "受监管机构 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 2
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultLearningOfferingRowList"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": [
+                    {
+                      "courseOfferingId": 3,
+                      "offeringName": "安全入门",
+                      "organizationId": 2,
+                      "orgName": "示例企业",
+                      "learnerCount": 12
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/regulation/learning-stats/export": {
+      "get": {
+        "summary": "导出学习统计 CSV",
+        "description": "权限：`regulation:learning:export`。UTF-8 BOM CSV，口径与页面一致。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:learning:export",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "query",
+            "description": "受监管机构 ID；空表示导出各机构行。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 2
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV 文件。",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "example": "organizationId,orgCode,employeeAccountCount"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/regulation/warnings/unread-count": {
+      "get": {
+        "summary": "待查看学时预警数量",
+        "description": "权限：`regulation:warning:list`。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:warning:list",
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultLong"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": 3
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/regulation/warnings": {
+      "get": {
+        "summary": "分页查询学时预警",
+        "description": "权限：`regulation:warning:list`。默认只返回 UNREAD/READ。可按机构、培训类型、状态筛选。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:warning:list",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "页码。",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页条数。",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "example": 20
+            }
+          },
+          {
+            "name": "query.warningStatus",
+            "in": "query",
+            "description": "预警状态。",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "UNREAD",
+                "READ",
+                "ENDED"
+              ],
+              "example": "UNREAD"
+            }
+          },
+          {
+            "name": "query.regulatedOrgId",
+            "in": "query",
+            "description": "被监管机构 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 2
+            }
+          },
+          {
+            "name": "query.trainingTypeId",
+            "in": "query",
+            "description": "培训类型 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultWarningVO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "list": [
+                      {
+                        "warningId": 9,
+                        "warningStatus": "UNREAD",
+                        "planName": "初培班",
+                        "hoursGap": 20
+                      }
+                    ],
+                    "total": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/regulation/warnings/export": {
+      "get": {
+        "summary": "导出学时预警 CSV",
+        "description": "权限：`regulation:warning:export`。按当前筛选导出 UTF-8 BOM CSV。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:warning:export",
+        "parameters": [
+          {
+            "name": "warningStatus",
+            "in": "query",
+            "description": "预警状态。",
+            "schema": {
+              "type": "string",
+              "example": "UNREAD"
+            }
+          },
+          {
+            "name": "regulatedOrgId",
+            "in": "query",
+            "description": "被监管机构 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 2
+            }
+          },
+          {
+            "name": "trainingTypeId",
+            "in": "query",
+            "description": "培训类型 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV 文件。",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "example": "warningId,warningStatus,planName"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/regulation/warnings/{warningId}": {
+      "get": {
+        "summary": "预警详情",
+        "description": "权限：`regulation:warning:list`。打开待查看预警时标记为已查看。返回计划学时、要求学时和差额。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:warning:list",
+        "parameters": [
+          {
+            "name": "warningId",
+            "in": "path",
+            "required": true,
+            "description": "预警 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 9
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultWarningVO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "warningId": 9,
+                    "warningStatus": "READ",
+                    "planName": "初培班",
+                    "trainingNature": "INITIAL",
+                    "planTotalHours": 60,
+                    "requiredHours": 80,
+                    "hoursGap": 20
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/regulation/warnings/{warningId}/view": {
+      "post": {
+        "summary": "标记预警已查看",
+        "description": "权限：`regulation:warning:action`。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:warning:action",
+        "parameters": [
+          {
+            "name": "warningId",
+            "in": "path",
+            "required": true,
+            "description": "预警 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 9
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/regulation/training-plans": {
+      "get": {
+        "summary": "目标企业培训计划分页",
+        "description": "权限：`regulation:overview:view`。须携带 `X-Target-Tenant-Id`。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:overview:view",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "页码，从 1 开始。",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页条数。",
+            "schema": {
+              "type": "integer",
+              "example": 20
+            }
+          },
+          {
+            "name": "query.planCode",
+            "in": "query",
+            "description": "计划编码。",
+            "schema": {
+              "type": "string",
+              "example": "PLAN-2026-001"
+            }
+          },
+          {
+            "name": "query.planName",
+            "in": "query",
+            "description": "计划名称。",
+            "schema": {
+              "type": "string",
+              "example": "危化品初培"
+            }
+          },
+          {
+            "name": "query.trainingTypeId",
+            "in": "query",
+            "description": "培训类型 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          },
+          {
+            "name": "query.trainingNature",
+            "in": "query",
+            "description": "培训性质：INITIAL 初培、REVIEW 复审、UNSPECIFIED 历史未指定。",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "INITIAL",
+                "REVIEW",
+                "UNSPECIFIED"
+              ],
+              "example": "INITIAL"
+            }
+          },
+          {
+            "name": "query.publishStatus",
+            "in": "query",
+            "description": "发布状态。",
+            "schema": {
+              "type": "string",
+              "example": "RUNNING"
+            }
+          },
+          {
+            "name": "query.status",
+            "in": "query",
+            "description": "启停状态。",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultTrainingPlanVO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "list": [],
+                    "total": 0
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/regulation/training-plans/{trainingPlanId}": {
+      "get": {
+        "summary": "目标企业培训计划详情",
+        "description": "权限：`regulation:overview:view`。须携带 `X-Target-Tenant-Id`。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:overview:view",
+        "parameters": [
+          {
+            "name": "trainingPlanId",
+            "in": "path",
+            "required": true,
+            "description": "培训计划 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultTrainingPlanVO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "trainingPlanId": 10,
+                    "planName": "初培班"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/regulation/training-plans/{trainingPlanId}/participants": {
+      "get": {
+        "summary": "目标企业计划参训人",
+        "description": "权限：`regulation:overview:view`。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:overview:view",
+        "parameters": [
+          {
+            "name": "trainingPlanId",
+            "in": "path",
+            "required": true,
+            "description": "培训计划 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultTrainingParticipantList"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": []
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/regulation/training-plans/{trainingPlanId}/participants/{trainingParticipantId}/results": {
+      "get": {
+        "summary": "目标企业参训人内容结果",
+        "description": "权限：`regulation:overview:view`。",
+        "tags": [
+          "RegulationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "regulation:overview:view",
+        "parameters": [
+          {
+            "name": "trainingPlanId",
+            "in": "path",
+            "required": true,
+            "description": "培训计划 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 10
+            }
+          },
+          {
+            "name": "trainingParticipantId",
+            "in": "path",
+            "required": true,
+            "description": "参训人 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultTrainingParticipantResultsVO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "trainingParticipantId": 20
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ResultEnvelope": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务码，0 表示成功。"
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息。"
+          },
+          "data": {
+            "description": "业务数据。"
+          }
+        }
+      },
+      "TrainingTypeShareVO": {
+        "type": "object",
+        "description": "培训类型计划数量分布。",
+        "required": [
+          "trainingTypeId",
+          "typeName",
+          "planCount"
+        ],
+        "properties": {
+          "trainingTypeId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "培训类型 ID。",
+            "example": 1
+          },
+          "typeName": {
+            "type": "string",
+            "description": "培训类型名称。",
+            "example": "特种作业"
+          },
+          "planCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "该类型培训计划数量。",
+            "example": 5
+          }
+        }
+      },
+      "SpecialOperationStatsVO": {
+        "type": "object",
+        "description": "特种作业培训统计。",
+        "required": [
+          "planCount",
+          "participantCount",
+          "completedParticipantCount"
+        ],
+        "properties": {
+          "planCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "特种作业培训计划数量。",
+            "example": 5
+          },
+          "participantCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "特种作业参训人数。",
+            "example": 40
+          },
+          "completedParticipantCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "特种作业已完成人数。",
+            "example": 20
+          }
+        }
+      },
+      "InstitutionSummaryVO": {
+        "type": "object",
+        "description": "受监管机构摘要。",
+        "required": [
+          "organizationId",
+          "orgCode",
+          "orgName",
+          "orgType",
+          "planCount",
+          "participantCount"
+        ],
+        "properties": {
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "机构 ID。",
+            "example": 2
+          },
+          "orgCode": {
+            "type": "string",
+            "description": "机构编码。",
+            "example": "ACME"
+          },
+          "orgName": {
+            "type": "string",
+            "description": "机构名称。",
+            "example": "示范企业"
+          },
+          "orgType": {
+            "type": "string",
+            "description": "机构类型：ENTERPRISE 企业、TRAINING_INSTITUTION 培训机构。",
+            "example": "ENTERPRISE",
+            "enum": [
+              "ENTERPRISE",
+              "TRAINING_INSTITUTION"
+            ]
+          },
+          "planCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "培训计划数量。",
+            "example": 4
+          },
+          "participantCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "参训人数。",
+            "example": 80
+          }
+        }
+      },
+      "WorkbenchShortcutVO": {
+        "type": "object",
+        "description": "监管工作台快捷入口。入口不授予额外权限。",
+        "required": [
+          "code",
+          "title",
+          "path",
+          "permission",
+          "granted"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "入口编码。",
+            "example": "CERTIFICATE",
+            "enum": [
+              "CERTIFICATE",
+              "DATA_CENTER"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "入口标题。",
+            "example": "证书管理"
+          },
+          "path": {
+            "type": "string",
+            "description": "前端路由。",
+            "example": "/admin/result/certificate/certificates"
+          },
+          "permission": {
+            "type": "string",
+            "description": "目标模块权限码。",
+            "example": "certificate:cert:list"
+          },
+          "granted": {
+            "type": "boolean",
+            "description": "当前用户是否具有目标模块权限。",
+            "example": true
+          }
+        }
+      },
+      "RegulationWorkbenchVO": {
+        "type": "object",
+        "description": "园区监管工作台概览。",
+        "required": [
+          "enterpriseCount",
+          "trainingInstitutionCount",
+          "planTotalCount",
+          "runningPlanCount",
+          "endedPlanCount",
+          "participantCount",
+          "completedParticipantCount",
+          "unreadWarningCount",
+          "trainingTypeDistribution",
+          "specialOperation",
+          "institutions",
+          "shortcuts"
+        ],
+        "properties": {
+          "enterpriseCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "受监管企业数量。",
+            "example": 10
+          },
+          "trainingInstitutionCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "受监管培训机构数量。",
+            "example": 2
+          },
+          "planTotalCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "培训计划总数。",
+            "example": 30
+          },
+          "runningPlanCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "进行中培训计划数量。",
+            "example": 8
+          },
+          "endedPlanCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "已结束培训计划数量。",
+            "example": 12
+          },
+          "participantCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "参训人数。",
+            "example": 400
+          },
+          "completedParticipantCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "已完成人数。",
+            "example": 210
+          },
+          "unreadWarningCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "待查看学时预警数量。",
+            "example": 3
+          },
+          "trainingTypeDistribution": {
+            "type": "array",
+            "description": "培训类型计划数量分布。",
+            "items": {
+              "$ref": "#/components/schemas/TrainingTypeShareVO"
+            }
+          },
+          "specialOperation": {
+            "$ref": "#/components/schemas/SpecialOperationStatsVO"
+          },
+          "institutions": {
+            "type": "array",
+            "description": "受监管机构摘要列表。",
+            "items": {
+              "$ref": "#/components/schemas/InstitutionSummaryVO"
+            }
+          },
+          "shortcuts": {
+            "type": "array",
+            "description": "监管工作台快捷入口。",
+            "items": {
+              "$ref": "#/components/schemas/WorkbenchShortcutVO"
+            }
+          }
+        }
+      },
+      "LearningStatsVO": {
+        "type": "object",
+        "description": "园区或单机构学习情况统计。",
+        "required": [
+          "employeeAccountCount",
+          "classSessionCount",
+          "classLearnerCount",
+          "participatingOfferingCount",
+          "avgSessionsPerLearner",
+          "participationRate",
+          "institutions"
+        ],
+        "properties": {
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "机构 ID；园区汇总时为空。",
+            "example": 2,
+            "nullable": true
+          },
+          "orgCode": {
+            "type": "string",
+            "description": "机构编码；园区汇总时为空。",
+            "example": "ACME",
+            "nullable": true
+          },
+          "orgName": {
+            "type": "string",
+            "description": "机构名称；园区汇总时为空。",
+            "example": "示范企业",
+            "nullable": true
+          },
+          "orgType": {
+            "type": "string",
+            "description": "机构类型；园区汇总时为空。",
+            "example": "ENTERPRISE",
+            "nullable": true
+          },
+          "employeeAccountCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "启用员工账号数。",
+            "example": 100
+          },
+          "classSessionCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "上课次数。",
+            "example": 40
+          },
+          "classLearnerCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "至少参加一个开课的去重学员数。",
+            "example": 20
+          },
+          "participatingOfferingCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "至少有一名学员参加的去重开课数。",
+            "example": 8
+          },
+          "avgSessionsPerLearner": {
+            "type": "number",
+            "description": "人均上课次数；零分母为 0。",
+            "example": 2
+          },
+          "participationRate": {
+            "type": "number",
+            "description": "参与率；零分母为 0。",
+            "example": 0.2
+          },
+          "institutions": {
+            "type": "array",
+            "description": "园区汇总下的机构同口径统计；单机构查询时为空列表。",
+            "items": {
+              "$ref": "#/components/schemas/LearningStatsVO"
+            }
+          }
+        }
+      },
+      "LearningLearnerRowVO": {
+        "type": "object",
+        "description": "学习人数下钻行。",
+        "required": [
+          "userId",
+          "userName",
+          "userCode",
+          "organizationId",
+          "offeringCount"
+        ],
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "用户 ID。",
+            "example": 9
+          },
+          "userName": {
+            "type": "string",
+            "description": "用户姓名。",
+            "example": "张三"
+          },
+          "userCode": {
+            "type": "string",
+            "description": "用户账号。",
+            "example": "zhang"
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "所属机构 ID。",
+            "example": 2
+          },
+          "orgName": {
+            "type": "string",
+            "description": "所属机构名称；由服务端展示翻译按 organizationId 回填，翻译缺失时为 null。",
+            "example": "示例企业"
+          },
+          "offeringCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "参加的开课数量。",
+            "example": 3
+          }
+        }
+      },
+      "LearningOfferingRowVO": {
+        "type": "object",
+        "description": "参与课程下钻行。",
+        "required": [
+          "courseOfferingId",
+          "offeringName",
+          "organizationId",
+          "learnerCount"
+        ],
+        "properties": {
+          "courseOfferingId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "课程开课 ID。",
+            "example": 3
+          },
+          "offeringName": {
+            "type": "string",
+            "description": "开课名称。",
+            "example": "安全入门"
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "所属机构 ID。",
+            "example": 2
+          },
+          "orgName": {
+            "type": "string",
+            "description": "所属机构名称；由服务端展示翻译按 organizationId 回填，翻译缺失时为 null。",
+            "example": "示例企业"
+          },
+          "learnerCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "参加该开课的去重学员数。",
+            "example": 12
+          }
+        }
+      },
+      "WarningQuery": {
+        "type": "object",
+        "description": "学时预警查询条件。",
+        "properties": {
+          "warningStatus": {
+            "type": "string",
+            "description": "预警状态：UNREAD 待查看、READ 已查看、ENDED 已结束。",
+            "example": "UNREAD",
+            "enum": [
+              "UNREAD",
+              "READ",
+              "ENDED"
+            ]
+          },
+          "regulatedOrgId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "受监管机构 ID。",
+            "example": 2,
+            "nullable": true
+          },
+          "trainingTypeId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "培训类型 ID。",
+            "example": 1,
+            "nullable": true
+          }
+        }
+      },
+      "WarningVO": {
+        "type": "object",
+        "description": "培训计划学时不足预警。",
+        "required": [
+          "warningId",
+          "organizationId",
+          "regulatedOrgId",
+          "regulatedOrgName",
+          "trainingPlanId",
+          "planCode",
+          "planName",
+          "trainingTypeId",
+          "trainingTypeName",
+          "trainingNature",
+          "planTotalHours",
+          "requiredHours",
+          "hoursGap",
+          "warningLevel",
+          "warningTitle",
+          "warningStatus",
+          "detectedTime",
+          "version"
+        ],
+        "properties": {
+          "warningId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "预警 ID。",
+            "example": 30
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "监管机构 ID。",
+            "example": 1
+          },
+          "warningRuleId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "内部固定规则 ID。",
+            "example": 1,
+            "nullable": true
+          },
+          "regulatedOrgId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "受监管机构 ID。",
+            "example": 2
+          },
+          "regulatedOrgName": {
+            "type": "string",
+            "description": "受监管机构名称。",
+            "example": "示范企业"
+          },
+          "trainingPlanId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "来源培训计划 ID。",
+            "example": 1001
+          },
+          "planCode": {
+            "type": "string",
+            "description": "培训计划编码。",
+            "example": "PLAN-2026-001"
+          },
+          "planName": {
+            "type": "string",
+            "description": "培训计划名称。",
+            "example": "危化品初培"
+          },
+          "trainingTypeId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "培训类型 ID。",
+            "example": 1
+          },
+          "trainingTypeName": {
+            "type": "string",
+            "description": "培训类型名称。",
+            "example": "特种作业"
+          },
+          "trainingNature": {
+            "type": "string",
+            "description": "培训性质：INITIAL 初培、REVIEW 复审。",
+            "example": "INITIAL",
+            "enum": [
+              "INITIAL",
+              "REVIEW"
+            ]
+          },
+          "planTotalHours": {
+            "type": "number",
+            "description": "计划安排总学时。",
+            "example": 20
+          },
+          "requiredHours": {
+            "type": "number",
+            "description": "培训类型要求学时。",
+            "example": 24
+          },
+          "hoursGap": {
+            "type": "number",
+            "description": "不足学时差额。",
+            "example": 4
+          },
+          "detectionCycle": {
+            "type": "string",
+            "description": "内部检测周期标识；自动刷新场景可能为空。",
+            "example": "AUTO",
+            "nullable": true
+          },
+          "warningLevel": {
+            "type": "string",
+            "description": "预警级别。当前固定学时预警通常为 WARN。",
+            "example": "WARN"
+          },
+          "warningTitle": {
+            "type": "string",
+            "description": "预警标题。",
+            "example": "培训计划学时不足"
+          },
+          "warningStatus": {
+            "type": "string",
+            "description": "预警状态：UNREAD 待查看、READ 已查看、ENDED 已结束。",
+            "example": "UNREAD",
+            "enum": [
+              "UNREAD",
+              "READ",
+              "ENDED"
+            ]
+          },
+          "detectedTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "首次检测时间。",
+            "example": "2026-09-20T10:00:00"
+          },
+          "firstViewedTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "首次查看时间。",
+            "example": "2026-09-20T11:00:00",
+            "nullable": true
+          },
+          "closedTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "计划修正后系统结束预警的时间。",
+            "example": "2026-09-20T12:00:00",
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号。",
+            "example": 1
+          }
+        }
+      },
+      "PageResultWarningVO": {
+        "type": "object",
+        "description": "学时预警分页结果。",
+        "required": [
+          "list",
+          "total"
+        ],
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页数据。",
+            "items": {
+              "$ref": "#/components/schemas/WarningVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "符合条件的总记录数。",
+            "example": 1
+          }
+        }
+      },
+      "ResultRegulationWorkbenchVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "监管工作台成功响应。",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/RegulationWorkbenchVO"
+              }
+            }
+          }
+        ]
+      },
+      "ResultLearningStatsVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "学习统计成功响应。",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/LearningStatsVO"
+              }
+            }
+          }
+        ]
+      },
+      "ResultLearningLearnerRowList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "学习人数下钻成功响应。",
+            "properties": {
+              "data": {
+                "type": "array",
+                "description": "学习人数下钻列表。",
+                "items": {
+                  "$ref": "#/components/schemas/LearningLearnerRowVO"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ResultLearningOfferingRowList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "参与课程下钻成功响应。",
+            "properties": {
+              "data": {
+                "type": "array",
+                "description": "参与课程下钻列表。",
+                "items": {
+                  "$ref": "#/components/schemas/LearningOfferingRowVO"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ResultLong": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "长整数成功响应。",
+            "properties": {
+              "data": {
+                "type": "integer",
+                "format": "int64",
+                "description": "数量。",
+                "example": 3
+              }
+            }
+          }
+        ]
+      },
+      "ResultPageResultWarningVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "学时预警分页响应。",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/PageResultWarningVO"
+              }
+            }
+          }
+        ]
+      },
+      "ResultWarningVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "学时预警详情响应。",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/WarningVO"
+              }
+            }
+          }
+        ]
+      },
+      "ResultVoid": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "无数据成功响应。",
+            "properties": {
+              "data": {
+                "nullable": true,
+                "description": "无业务返回数据。",
+                "example": null
+              }
+            }
+          }
+        ]
+      },
+      "TrainingQuestionBankDrawRule": {
+        "type": "object",
+        "description": "题库练习抽题规则。规则只定义筛选和数量，不定义练习分数。",
+        "required": [
+          "questionType",
+          "drawCount"
+        ],
+        "properties": {
+          "questionType": {
+            "type": "string",
+            "example": "SINGLE",
+            "enum": [
+              "SINGLE",
+              "MULTIPLE",
+              "JUDGE",
+              "FILL",
+              "ESSAY"
+            ],
+            "description": "题目类型。SINGLE/MULTIPLE/JUDGE/FILL 可自动判断对错；ESSAY 仅记录作答，不判断对错且不进入批阅。"
+          },
+          "difficulty": {
+            "type": "string",
+            "nullable": true,
+            "example": "ALL",
+            "description": "难度过滤。可空表示不限。"
+          },
+          "knowledgePointId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "example": 0,
+            "description": "知识点 ID。0 或空表示不限。"
+          },
+          "drawCount": {
+            "type": "integer",
+            "example": 10,
+            "description": "抽取题数。"
+          },
+          "scorePerQuestion": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "deprecated": true,
+            "example": 2,
+            "description": "历史兼容字段。新题库练习不评分，服务端忽略该值；新调用方应省略。"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "example": 1,
+            "description": "抽题规则显示顺序。"
+          }
+        }
+      },
+      "TrainingContentExecutionConfig": {
+        "type": "object",
+        "description": "培训内容执行配置。未使用字段必须为空。",
+        "properties": {
+          "completionRule": {
+            "type": "string",
+            "nullable": true,
+            "example": "ALL_REQUIRED_ITEMS",
+            "enum": [
+              "ALL_REQUIRED_ITEMS",
+              "ALL_ITEMS"
+            ],
+            "description": "COURSE 完成规则。ALL_REQUIRED_ITEMS 完成全部必修项；ALL_ITEMS 完成全部内容项。"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "nullable": true,
+            "example": 1800,
+            "description": "QUESTION_BANK 作答时限（秒）。不是培训安排学时或获得学时，不得计入 requiredHours、onlineHours 或 effectiveDurationSeconds。"
+          },
+          "passScore": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "example": 60,
+            "description": "OFFLINE 及格分数；QUESTION_BANK 中仅为历史兼容字段，新题库练习不评分且服务端忽略该值。"
+          },
+          "maxAttempts": {
+            "type": "integer",
+            "nullable": true,
+            "example": 3,
+            "description": "QUESTION_BANK 最大作答次数。"
+          },
+          "drawRules": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/TrainingQuestionBankDrawRule"
+            },
+            "description": "QUESTION_BANK 抽题规则列表。"
+          },
+          "teacherUserId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "example": 2001,
+            "description": "OFFLINE 场次教师用户 ID。"
+          },
+          "location": {
+            "type": "string",
+            "nullable": true,
+            "example": "实训楼 301",
+            "description": "OFFLINE 地点。"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2026-09-01T09:00:00",
+            "description": "OFFLINE 开始时间。"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2026-09-01T12:00:00",
+            "description": "OFFLINE 结束时间。"
+          }
+        }
+      },
+      "TrainingPlanContentVO": {
+        "type": "object",
+        "description": "培训计划阶段下的内容项。",
+        "properties": {
+          "planContentId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "计划内容项 ID。"
+          },
+          "planStageId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "计划阶段 ID。"
+          },
+          "contentType": {
+            "type": "string",
+            "example": "COURSE",
+            "description": "内容类型。COURSE 课程学习；EXAM 考试；QUESTION_BANK 题库练习；OFFLINE 线下培训。resourceId 按该类型指向对应业务对象。",
+            "enum": [
+              "COURSE",
+              "EXAM",
+              "QUESTION_BANK",
+              "OFFLINE"
+            ]
+          },
+          "resourceId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "规则或内容关联的资源 ID，含义由 contentType / resourceType 决定。"
+          },
+          "resourceVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "example": 7101,
+            "description": "资源版本 ID。COURSE 为 courseVersionId；EXAM 为 paperVersionId；QUESTION_BANK 与 OFFLINE 为空。计划发布时由服务端冻结，客户端可不传。"
+          },
+          "assessmentMode": {
+            "type": "string",
+            "nullable": true,
+            "example": "FORMAL_EXAM",
+            "enum": [
+              "QUIZ",
+              "FORMAL_EXAM"
+            ],
+            "description": "考试模式，仅 EXAM 使用。QUIZ 测验；FORMAL_EXAM 理论考试。"
+          },
+          "executionConfig": {
+            "$ref": "#/components/schemas/TrainingContentExecutionConfig",
+            "nullable": true,
+            "description": "内容执行配置。COURSE 填 completionRule；EXAM 不额外配置；QUESTION_BANK 必须填时长、次数和抽题规则，不要求及格线或每题分值；OFFLINE 必须填教师、地点、时间和及格线。"
+          },
+          "resourceSnapshotJson": {
+            "type": "string",
+            "nullable": true,
+            "example": "{\"contentType\":\"COURSE\",\"resourceVersionId\":7101}",
+            "description": "计划发布时冻结的内容资源快照 JSON。草稿可为空。"
+          },
+          "resourceSnapshotHash": {
+            "type": "string",
+            "nullable": true,
+            "example": "e3b0c44298fc1c149afbf4c8996fb924",
+            "description": "内容资源快照规范化哈希。草稿可为空。"
+          },
+          "contentName": {
+            "type": "string",
+            "example": "危化品安全课程",
+            "description": "内容项名称。"
+          },
+          "isRequired": {
+            "type": "integer",
+            "example": 0,
+            "description": "是否必修或必填。0 否，可跳过或留空；1 是，必须完成或填写。",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "isScored": {
+            "type": "integer",
+            "example": 1,
+            "description": "是否计入成绩。0 不计分；1 计分。"
+          },
+          "scoreWeight": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "该内容项在阶段成绩中的权重。"
+          },
+          "scoreAggregationMode": {
+            "type": "string",
+            "example": "AVERAGE",
+            "description": "同类型成绩聚合方式。AVERAGE 算术平均；WEIGHTED_AVERAGE 加权平均。可为空表示不聚合。",
+            "enum": [
+              "AVERAGE",
+              "WEIGHTED_AVERAGE"
+            ]
+          },
+          "requiredHours": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "安排学时。COURSE 与 OFFLINE 填写并计入发布总学时；COURSE 计入线上占比。EXAM/QUESTION_BANK 不得为正，省略或 0，返回 0，不计入合计。不是学员获得学时。"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "example": 1,
+            "description": "显示顺序，同级内按升序排列。"
+          },
+          "contentStatus": {
+            "type": "string",
+            "example": "RUNNING",
+            "description": "内容状态。PENDING 未开始；RUNNING 进行中；COMPLETED 已完成；FAILED 未通过；SKIPPED 已跳过。"
+          }
+        }
+      },
+      "TrainingPlanStageVO": {
+        "type": "object",
+        "description": "培训计划阶段及其内容项。",
+        "properties": {
+          "planStageId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "计划阶段 ID。"
+          },
+          "trainingPlanId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "培训计划 ID。"
+          },
+          "sourceTemplateStageId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "来源模板阶段 ID，由模板生成计划时回填，便于追溯。"
+          },
+          "stageName": {
+            "type": "string",
+            "example": "线上学习",
+            "description": "阶段名称。"
+          },
+          "stageType": {
+            "type": "string",
+            "example": "ONLINE",
+            "description": "阶段类型。ONLINE 线上阶段；OFFLINE 线下阶段；MIXED 线上线下混合。",
+            "enum": [
+              "ONLINE",
+              "OFFLINE",
+              "MIXED"
+            ]
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-31T09:00:00",
+            "description": "开始时间。"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-31T09:00:00",
+            "description": "结束时间。"
+          },
+          "location": {
+            "type": "string",
+            "example": "线上",
+            "description": "地点。"
+          },
+          "requiredHours": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "阶段展示用安排学时。发布与预警不读本字段，只按内容行 COURSE 与 OFFLINE 合计。"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "example": 1,
+            "description": "显示顺序，同级内按升序排列。"
+          },
+          "stageStatus": {
+            "type": "string",
+            "example": "RUNNING",
+            "description": "阶段状态。PENDING 未开始；RUNNING 进行中；COMPLETED 已完成；CANCELLED 已取消。"
+          },
+          "contents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingPlanContentVO"
+            },
+            "description": "阶段下的内容项列表。"
+          }
+        }
+      },
+      "TrainingPlanEvaluationFormVO": {
+        "type": "object",
+        "description": "培训计划当前有效的评价表单版本绑定摘要。",
+        "required": [
+          "planEvaluationFormId",
+          "trainingPlanId",
+          "formVersionId",
+          "evaluationFormId",
+          "formName",
+          "versionNo",
+          "publishedStatus",
+          "usageType",
+          "isRequired",
+          "status"
+        ],
+        "properties": {
+          "planEvaluationFormId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "计划与评价表单版本的绑定关系 ID。"
+          },
+          "trainingPlanId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "培训计划 ID。"
+          },
+          "formVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "评价表单版本 ID，必须是已发布版本。"
+          },
+          "evaluationFormId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 401,
+            "description": "评价表单主体 ID，用于识别被绑定版本所属表单。"
+          },
+          "formName": {
+            "type": "string",
+            "example": "培训综合素质评价表",
+            "description": "被绑定评价表单的当前名称，用于计划绑定摘要展示。"
+          },
+          "versionNo": {
+            "type": "integer",
+            "example": 3,
+            "description": "被绑定的不可变评价表单版本号。"
+          },
+          "publishedStatus": {
+            "type": "string",
+            "example": "PUBLISHED",
+            "description": "被绑定版本的发布状态。PUBLISHED 已发布；ARCHIVED 已归档。绑定事实仍由 formVersionId 确定。",
+            "enum": [
+              "PUBLISHED",
+              "ARCHIVED"
+            ]
+          },
+          "usageType": {
+            "type": "string",
+            "example": "COMPOSITE",
+            "description": "评价用途。COMPOSITE 综合评价；EXPERT_INSPECTION 专家检查；PARTICIPANT 参训人员评价；COURSE_QUALITY 课程质量评价。",
+            "enum": [
+              "COMPOSITE",
+              "EXPERT_INSPECTION",
+              "PARTICIPANT",
+              "COURSE_QUALITY"
+            ]
+          },
+          "isRequired": {
+            "type": "integer",
+            "example": 0,
+            "description": "是否必修或必填。0 否，可跳过或留空；1 是，必须完成或填写。",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "status": {
+            "type": "integer",
+            "example": 0,
+            "description": "启用状态。0 禁用，禁用后不参与新的引用和选择；1 正常。",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "TrainingPlanVO": {
+        "type": "object",
+        "description": "培训计划详情及发布快照、阶段和评价表单绑定。",
+        "required": [
+          "publishStatus",
+          "evaluationForms"
+        ],
+        "properties": {
+          "trainingPlanId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "培训计划 ID。"
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "所属机构 ID。"
+          },
+          "planCode": {
+            "type": "string",
+            "example": "PLAN-2026-001",
+            "description": "培训计划编码，同一机构下唯一。"
+          },
+          "planName": {
+            "type": "string",
+            "example": "危化品初培",
+            "description": "培训计划名称。"
+          },
+          "trainingTypeId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "培训类型 ID，必须属于当前机构。"
+          },
+          "trainingNature": {
+            "type": "string",
+            "example": "INITIAL",
+            "description": "培训性质。INITIAL 初培；REVIEW 复审；UNSPECIFIED 仅表示迁移前历史计划尚未补录。",
+            "enum": [
+              "INITIAL",
+              "REVIEW",
+              "UNSPECIFIED"
+            ]
+          },
+          "applicableRequiredHours": {
+            "type": "number",
+            "format": "double",
+            "example": 80,
+            "description": "发布时冻结的适用最低总学时，取培训性质对应类型学时与有效培训标准总学时规则中的最大值；草稿或历史未发布计划可为空。"
+          },
+          "trainingStandardId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "培训标准 ID。"
+          },
+          "sourceTemplateId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "来源培训模板 ID。创建时若传入合格已发布模板，服务端复制其课表；更新时只保存该字段，不复制课表。"
+          },
+          "sourceOwnerOrganizationId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "发布快照中的来源资源所属机构 ID，当前仅允许本机构。"
+          },
+          "trainingTypeSnapshotJson": {
+            "type": "string",
+            "example": "{\"trainingTypeId\":1,\"typeName\":\"特种作业\"}",
+            "description": "发布时冻结的培训类型快照 JSON，发布后不随源数据变化。"
+          },
+          "trainingStandardSnapshotJson": {
+            "type": "string",
+            "example": "{\"requiredHours\":24}",
+            "description": "发布时冻结的培训标准及其规则快照 JSON。"
+          },
+          "templateSnapshotJson": {
+            "type": "string",
+            "example": "{\"trainingTemplateId\":5,\"templateName\":\"危化品初培模板\"}",
+            "description": "发布时冻结的培训模板快照 JSON。"
+          },
+          "sourceSnapshotHash": {
+            "type": "string",
+            "example": "e3b0c44298fc1c149afbf4c8996fb924",
+            "description": "上述快照的 SHA-256 摘要，用于校验发布内容未被篡改。"
+          },
+          "managerUserId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "计划负责人用户 ID。"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-31T09:00:00",
+            "description": "开始时间。"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-31T09:00:00",
+            "description": "结束时间。"
+          },
+          "location": {
+            "type": "string",
+            "example": "一号培训室",
+            "description": "地点。"
+          },
+          "description": {
+            "type": "string",
+            "example": "面向新入职危化品作业人员",
+            "description": "描述说明。"
+          },
+          "publishStatus": {
+            "type": "string",
+            "example": "DRAFT",
+            "description": "发布状态。DRAFT 草稿，可编辑可删除；PUBLISHED 已发布，编排内容冻结；RUNNING 执行中；ENDED 已结束；CANCELLED 已取消；ARCHIVED 已归档。",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "RUNNING",
+              "ENDED",
+              "CANCELLED",
+              "ARCHIVED"
+            ]
+          },
+          "publishedTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-31T09:00:00",
+            "description": "发布时间。"
+          },
+          "status": {
+            "type": "integer",
+            "example": 0,
+            "description": "启用状态。0 禁用，禁用后不参与新的引用和选择；1 正常。",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "example": 1,
+            "description": "乐观锁版本号。更新、整体替换和发布时须原样回传查询结果中的值；与库中不一致返回 409 版本冲突。"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-31T09:00:00",
+            "description": "创建时间。"
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingPlanStageVO"
+            },
+            "description": "阶段列表，整体替换，提交内容即为替换后的全量阶段及其内容项。"
+          },
+          "evaluationForms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingPlanEvaluationFormVO"
+            },
+            "description": "当前有效的评价表单版本绑定摘要，按 usageType、planEvaluationFormId 升序排列；未绑定时固定返回空数组。"
+          }
+        }
+      },
+      "PageResultTrainingPlanVO": {
+        "type": "object",
+        "description": "TrainingPlanVO 分页结果。",
+        "required": [
+          "list",
+          "total"
+        ],
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页数据列表。",
+            "items": {
+              "$ref": "#/components/schemas/TrainingPlanVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "符合条件的总记录数。",
+            "example": 1
+          }
+        }
+      },
+      "ResultPageResultTrainingPlanVO": {
+        "type": "object",
+        "description": "ResultPageResultTrainingPlanVO 统一成功响应。",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码，0 表示成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息。",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultTrainingPlanVO",
+            "description": "业务响应数据。"
+          }
+        }
+      },
+      "ResultTrainingPlanVO": {
+        "type": "object",
+        "description": "ResultTrainingPlanVO 统一成功响应。",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码，0 表示成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息。",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TrainingPlanVO",
+            "description": "业务响应数据。"
+          }
+        }
+      },
+      "TrainingParticipantVO": {
+        "type": "object",
+        "description": "培训计划参训人信息。",
+        "properties": {
+          "trainingParticipantId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "参训人 ID。"
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "所属机构 ID。"
+          },
+          "trainingPlanId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "培训计划 ID。"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "用户 ID。"
+          },
+          "participantOrgId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "参训人所属机构 ID。"
+          },
+          "joinSource": {
+            "type": "string",
+            "example": "ASSIGN",
+            "description": "加入来源。ASSIGN 管理员指派；IMPORT 批量导入；QR 扫码加入。",
+            "enum": [
+              "ASSIGN",
+              "IMPORT",
+              "QR"
+            ]
+          },
+          "joinedTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-31T09:00:00",
+            "description": "加入培训计划的时间。"
+          },
+          "participantStatus": {
+            "type": "string",
+            "example": "PENDING",
+            "description": "参训状态。PENDING 待开始；LEARNING 学习中；COMPLETED 已完成；FAILED 未通过；EXPIRED 已过期；WITHDRAWN 已退出。",
+            "enum": [
+              "PENDING",
+              "LEARNING",
+              "COMPLETED",
+              "FAILED",
+              "EXPIRED",
+              "WITHDRAWN"
+            ]
+          },
+          "onlineHours": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "该参训人获得的线上学时（小时）。仅累计 COURSE 正式学习秒；EXAM/QUESTION_BANK 不计入。不是计划安排学时 requiredHours。"
+          },
+          "offlineHours": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "该参训人获得的线下学时（小时）。仅累计线下合格项的安排学时。不是计划安排学时 requiredHours。"
+          }
+        }
+      },
+      "TrainingParticipantList": {
+        "type": "array",
+        "description": "参训人员列表。",
+        "items": {
+          "$ref": "#/components/schemas/TrainingParticipantVO"
+        }
+      },
+      "ResultTrainingParticipantList": {
+        "type": "object",
+        "description": "ResultTrainingParticipantList 统一成功响应。",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码，0 表示成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息。",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TrainingParticipantList",
+            "description": "业务响应数据。"
+          }
+        }
+      },
+      "TrainingParticipantResultItemVO": {
+        "type": "object",
+        "description": "参训人在单个计划内容项上的正式结果。",
+        "properties": {
+          "planContentId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "计划内容项 ID。"
+          },
+          "contentName": {
+            "type": "string",
+            "example": "危化品安全课程",
+            "description": "内容项名称。"
+          },
+          "executionType": {
+            "type": "string",
+            "example": "COURSE",
+            "description": "执行实例类型。COURSE 课程开课；EXAM 考试；QUESTION_BANK 题库练习；OFFLINE 线下场次。executionId 按该类型指向对应业务实例。",
+            "enum": [
+              "COURSE",
+              "EXAM",
+              "QUESTION_BANK",
+              "OFFLINE"
+            ]
+          },
+          "executionId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "执行实例 ID。COURSE 为 courseOfferingId，EXAM/QUESTION_BANK 为 assessmentExecutionId，OFFLINE 为 offlineSessionId。"
+          },
+          "sourceRecordType": {
+            "type": "string",
+            "example": "COURSE_ENROLLMENT",
+            "description": "来源记录类型。COURSE_ENROLLMENT 课程报名；EXAM_CANDIDATE 考试人员；OFFLINE_SCORE 线下成绩。"
+          },
+          "sourceRecordId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 81,
+            "description": "来源记录主键 ID。"
+          },
+          "finalAttemptId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 201,
+            "description": "考试类最终作答尝试 ID；非考试类型为空。"
+          },
+          "evaluatedCount": {
+            "type": "integer",
+            "nullable": true,
+            "example": 8,
+            "description": "题库练习中可自动判断的题目数；其他内容或历史结果为空。"
+          },
+          "correctCount": {
+            "type": "integer",
+            "nullable": true,
+            "example": 6,
+            "description": "题库练习中自动判断正确的题目数；不包含 RECORD_ONLY 题。"
+          },
+          "wrongCount": {
+            "type": "integer",
+            "nullable": true,
+            "example": 2,
+            "description": "题库练习中自动判断错误的题目数；不包含 RECORD_ONLY 题。"
+          },
+          "unassessedCount": {
+            "type": "integer",
+            "nullable": true,
+            "example": 2,
+            "description": "题库练习中已作答但不判断对错的题目数。"
+          },
+          "accuracyRate": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "example": 75,
+            "description": "题库练习正确率百分比，仅以 evaluatedCount 为分母；没有可判断题时为空。"
+          },
+          "sourceStatus": {
+            "type": "string",
+            "nullable": true,
+            "example": "PASSED",
+            "description": "来源记录在同步时的原始状态。COURSE 为报名学习状态；EXAM/QUESTION_BANK 为 Candidate 状态；OFFLINE_SCORE 为 SCORED。没有来源记录时为空，不得与 resultStatus 混用。"
+          },
+          "resultStatus": {
+            "type": "string",
+            "example": "COMPLETED",
+            "description": "逐内容结果状态。PENDING 待开始；IN_PROGRESS 进行中；PENDING_REVIEW 待阅卷；PENDING_PUBLISH 待发布成绩；COMPLETED 完成；FAILED 不合格；EXPIRED 到期。线下无分为 PENDING，低于及格线为 FAILED。"
+          },
+          "sessionStatus": {
+            "type": "string",
+            "nullable": true,
+            "example": "IN_PROGRESS",
+            "description": "线下场次当前状态，仅 executionType=OFFLINE 时返回。用于展示场次进度，不改变学员个人 resultStatus；其他内容类型为空。"
+          },
+          "effectiveDurationSeconds": {
+            "type": "integer",
+            "example": 3600,
+            "description": "该项获得学时秒数，不是安排学时 requiredHours。COURSE 为正式学习秒数；OFFLINE 为合格成绩对应的内容 requiredHours 换算秒，未评分或不合格为 0；EXAM/QUESTION_BANK 为 0。"
+          },
+          "score": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "example": 80,
+            "description": "分项正式成绩。未发布考试成绩及不评分题库练习为空。"
+          },
+          "completedTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-08-31T10:00:00",
+            "description": "完成时间。"
+          },
+          "resultRevision": {
+            "type": "integer",
+            "example": 1,
+            "description": "结果修订号。来源正式结果刷新时递增。"
+          },
+          "finalizedTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-08-31T18:00:00",
+            "description": "计划结束时的投影冻结时间。"
+          }
+        }
+      },
+      "TrainingParticipantResultsVO": {
+        "type": "object",
+        "description": "参训人培训分项结果与综合结论。",
+        "properties": {
+          "trainingPlanId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "培训计划 ID。"
+          },
+          "trainingParticipantId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "参训人 ID。"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 2001,
+            "description": "参训人用户 ID。"
+          },
+          "courseScore": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "课程成绩，来自正式课程学习事实。"
+          },
+          "examScore": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "考试成绩，来自正式考试事实。"
+          },
+          "offlineScore": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "线下成绩，来自正式线下成绩事实。"
+          },
+          "compositeScore": {
+            "type": "number",
+            "format": "double",
+            "example": 1,
+            "description": "当前综合分，由绑定的综合评价表按考试/课程/线下权重与奖惩自动计算；缺少规则所需来源时为空且结果待补全，不得补零。"
+          },
+          "officialCalculationRunId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1,
+            "description": "正式综合结果所属的计算批次 ID。"
+          },
+          "resultStatus": {
+            "type": "string",
+            "example": "PASSED",
+            "description": "培训结果状态。PASSED 合格；FAILED 不合格；INCOMPLETE 结果待补全。",
+            "enum": [
+              "PASSED",
+              "FAILED",
+              "INCOMPLETE"
+            ]
+          },
+          "onlineHours": {
+            "type": "number",
+            "format": "double",
+            "example": 1.5,
+            "description": "该参训人获得的线上学时（小时，由秒/3600 换算）。仅累计 COURSE 的 effectiveDurationSeconds；EXAM/QUESTION_BANK 为 0 不计入。不是计划 requiredHours，不得用于对发布总学时。"
+          },
+          "offlineHours": {
+            "type": "number",
+            "format": "double",
+            "example": 2,
+            "description": "该参训人获得的线下学时（小时，由秒/3600 换算）。仅累计线下合格项的 effectiveDurationSeconds。不是计划 requiredHours。"
+          },
+          "resultFinalizedTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-08-31T18:00:00",
+            "description": "结果冻结时间。非空后普通同步不再覆盖。"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingParticipantResultItemVO"
+            },
+            "description": "明细列表。"
+          }
+        }
+      },
+      "ResultTrainingParticipantResultsVO": {
+        "type": "object",
+        "description": "ResultTrainingParticipantResultsVO 统一成功响应。",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码，0 表示成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息。",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TrainingParticipantResultsVO",
+            "description": "业务响应数据。"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "请求参数或业务前置条件不满足。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 4000,
+              "message": "请求参数不正确",
+              "data": null
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "未登录或登录态已失效。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 1002,
+              "message": "未登录",
+              "data": null
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "没有接口权限或数据访问权限。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 1003,
+              "message": "无权限访问",
+              "data": null
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "目标业务对象不存在或不可见。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 4040,
+              "message": "资源不存在",
+              "data": null
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "资源状态、版本或唯一性冲突。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 4090,
+              "message": "当前状态不允许该操作",
+              "data": null
+            }
+          }
+        }
+      }
+    }
+  }
+}

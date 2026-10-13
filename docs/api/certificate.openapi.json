@@ -1,0 +1,2385 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "证书 API 契约",
+    "version": "1.1.0",
+    "description": "STS M4 证书契约：模板、签发规则、自动签发结果、管理员查询下载及学员本人查看下载。手工签发、撤销和重发不对外提供。按 CertificateController 分组阅读。"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "sts-service-admin context path"
+    }
+  ],
+  "tags": [
+    {
+      "name": "CertificateController",
+      "description": "证书模板、签发规则、已签发证书查询以及证书文件查看下载。"
+    }
+  ],
+  "paths": {
+    "/api/certificate/templates": {
+      "get": {
+        "summary": "分页证书模板",
+        "description": "权限：`certificate:template:list`。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:template:list",
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultCertificateTemplateVO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "list": [
+                      {
+                        "certificateTemplateId": 1,
+                        "organizationId": 10,
+                        "templateCode": "CERT-TPL-001",
+                        "templateName": "安全培训合格证",
+                        "currentVersionNo": 2,
+                        "status": 1,
+                        "version": 3
+                      }
+                    ],
+                    "total": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "页码，从 1 开始。",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页条数。",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 10,
+              "example": 10
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "创建模板",
+        "description": "权限：`certificate:template:add`。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:template:add",
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultId"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateTemplateCreateRequest"
+              },
+              "example": {
+                "templateCode": "CERT-TPL-001",
+                "templateName": "安全培训合格证",
+                "status": 1,
+                "description": "通用合格证模板"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/certificate/templates/{certificateTemplateId}/publish": {
+      "post": {
+        "summary": "发布模板版本",
+        "description": "权限：`certificate:template:publish`。校验并保存请求中的完整设计后，将草稿发布为当前版本，原已发布版本转为归档。错误码：9401 模板不存在；9404 底图不可用；9405 设计不合法；9406 版本冲突。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:template:publish",
+        "parameters": [
+          {
+            "name": "certificateTemplateId",
+            "in": "path",
+            "required": true,
+            "description": "证书模板 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateTemplatePublishRequest"
+              },
+              "example": {
+                "version": 3,
+                "backgroundFileId": 5001,
+                "widthPx": 1024,
+                "heightPx": 768,
+                "versionNote": "首版发布",
+                "elements": [
+                  {
+                    "elementType": "TEXT",
+                    "staticContent": "安全培训合格证",
+                    "xPosition": 100,
+                    "yPosition": 200,
+                    "fontFamily": "SansSerif",
+                    "fontSize": 36,
+                    "fontColor": "#112233",
+                    "sortOrder": 1,
+                    "status": 1
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/certificate/rules": {
+      "get": {
+        "summary": "签发规则列表",
+        "description": "权限：`certificate:rule:list`。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:rule:list",
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCertificateIssueRuleList"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": [
+                    {
+                      "certificateRuleId": 3,
+                      "organizationId": 10,
+                      "ruleName": "课程达标自动签发",
+                      "certificateTemplateId": 1,
+                      "certificateTemplateName": "安全培训合格证",
+                      "sourceType": "COURSE",
+                      "sourceId": 20,
+                      "sourceName": "有限空间作业课程",
+                      "conditionType": "PASS",
+                      "isAutoIssue": 1,
+                      "status": 1,
+                      "version": 4
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+    "summary": "创建规则",
+    "description": "权限：`certificate:rule:add`。仅可绑定已发布模板与当前机构可绑定来源；同一来源对象在启用状态下至多存在一条规则。错误码：9407 模板不可绑定；9408 来源不可绑定；9412 规则重复；9418 该来源已存在启用规则。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:rule:add",
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultId"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": 3
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateIssueRuleCreateRequest"
+              },
+              "example": {
+                "ruleName": "培训合格自动签发",
+                "certificateTemplateId": 1,
+                "sourceType": "TRAINING",
+                "sourceId": 1001,
+                "conditionType": "PASS",
+                "isAutoIssue": 1,
+                "status": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/certificate/certificates": {
+      "get": {
+        "summary": "分页查询已签发证书",
+        "description": "权限：`certificate:cert:list`。管理员按学员、来源类型和来源查询已签发证书。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:cert:list",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "页码，从 1 开始。",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页条数。",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 10,
+              "example": 10
+            }
+          },
+          {
+            "name": "query.holderUserId",
+            "in": "query",
+            "description": "证书持有人用户 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1001
+            }
+          },
+          {
+            "name": "query.sourceType",
+            "in": "query",
+            "description": "来源类型：COURSE 课程、EXAM 理论考试、TRAINING 培训。",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "COURSE",
+                "EXAM",
+                "TRAINING"
+              ],
+              "example": "COURSE"
+            }
+          },
+          {
+            "name": "query.sourceId",
+            "in": "query",
+            "description": "来源业务对象 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 20
+            }
+          },
+          {
+            "name": "query.certificateStatus",
+            "in": "query",
+            "description": "证书状态。当前最小闭环正常证书为 ISSUED。",
+            "schema": {
+              "type": "string",
+              "example": "ISSUED"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultCertificateVO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "list": [
+                      {
+                        "certificateId": 8,
+                        "organizationId": 10,
+                        "certificateNo": "CERT-2026-0008",
+                        "holderUserId": 1001,
+                        "sourceType": "COURSE",
+                        "sourceId": 20,
+                        "sourceName": "有限空间作业课程",
+                        "certificateStatus": "ISSUED",
+                        "issuedTime": "2026-09-20T10:00:00",
+                        "certificateFileId": 5008
+                      }
+                    ],
+                    "total": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/certificate/templates/{certificateTemplateId}/preview": {
+      "get": {
+        "summary": "预览证书模板",
+        "description": "权限：`certificate:template:list`。使用示例数据（证书编号 CERT-SAMPLE、学员姓名张三）渲染已发布模板 PNG。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:template:list",
+        "parameters": [
+          {
+            "name": "certificateTemplateId",
+            "in": "path",
+            "required": true,
+            "description": "证书模板 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "证书 PNG 文件。",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "example": "iVBORw0KGgo="
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/certificate/certificates/{certificateId}/file": {
+      "get": {
+        "summary": "下载已签发证书文件",
+        "description": "权限：`certificate:cert:list`。返回真实证书 PNG，禁止占位 fileId。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:cert:list",
+        "parameters": [
+          {
+            "name": "certificateId",
+            "in": "path",
+            "required": true,
+            "description": "证书 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 9
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "证书 PNG 文件。",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "example": "iVBORw0KGgo="
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/certificate/my-certificates": {
+      "get": {
+        "summary": "分页查询本人证书",
+        "description": "权限：`certificate:cert:list` 或 `training:learner:task`。持有人由登录态派生，学员只能看到本人证书。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:cert:list,training:learner:task",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "页码，从 1 开始。",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页条数。",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 10,
+              "example": 10
+            }
+          },
+          {
+            "name": "query.sourceType",
+            "in": "query",
+            "description": "来源类型：COURSE 课程、EXAM 理论考试、TRAINING 培训。",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "COURSE",
+                "EXAM",
+                "TRAINING"
+              ],
+              "example": "COURSE"
+            }
+          },
+          {
+            "name": "query.sourceId",
+            "in": "query",
+            "description": "来源业务对象 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 20
+            }
+          },
+          {
+            "name": "query.certificateStatus",
+            "in": "query",
+            "description": "证书状态。",
+            "schema": {
+              "type": "string",
+              "example": "ISSUED"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultCertificateVO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "list": [
+                      {
+                        "certificateId": 8,
+                        "organizationId": 10,
+                        "certificateNo": "CERT-2026-0008",
+                        "holderUserId": 1001,
+                        "sourceType": "COURSE",
+                        "sourceId": 20,
+                        "sourceName": "有限空间作业课程",
+                        "certificateStatus": "ISSUED",
+                        "issuedTime": "2026-09-20T10:00:00",
+                        "certificateFileId": 5008
+                      }
+                    ],
+                    "total": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/certificate/my-certificates/{certificateId}/file": {
+      "get": {
+        "summary": "下载本人证书文件",
+        "description": "权限：`certificate:cert:list` 或 `training:learner:task`。非持有人返回 403 业务码 9416。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:cert:list,training:learner:task",
+        "parameters": [
+          {
+            "name": "certificateId",
+            "in": "path",
+            "required": true,
+            "description": "证书 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 9
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "证书 PNG 文件。",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "example": "iVBORw0KGgo="
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/certificate/templates/{certificateTemplateId}": {
+      "get": {
+        "summary": "查询证书模板详情",
+        "description": "权限：`certificate:template:list`。返回模板元数据、当前已发布版本、可编辑草稿及各自完整元素。错误码：9401 证书模板不存在。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:template:list",
+        "parameters": [
+          {
+            "name": "certificateTemplateId",
+            "in": "path",
+            "required": true,
+            "description": "证书模板 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCertificateTemplateVO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "certificateTemplateId": 1,
+                    "organizationId": 10,
+                    "templateCode": "CERT-TPL-001",
+                    "templateName": "安全培训合格证",
+                    "description": "适用于安全培训达标学员",
+                    "currentVersionNo": 2,
+                    "status": 1,
+                    "version": 3,
+                    "currentPublishedVersion": {
+                      "templateVersionId": 101,
+                      "versionNo": 2,
+                      "backgroundFileId": 5001,
+                      "widthPx": 1024,
+                      "heightPx": 768,
+                      "publishedStatus": "PUBLISHED",
+                      "versionNote": "首版发布",
+                      "elements": []
+                    },
+                    "draftVersion": null
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "summary": "更新证书模板",
+        "description": "权限：`certificate:template:edit`。按 version 更新模板元数据，并整体保存唯一可编辑草稿的底图、尺寸、文字、变量、坐标和样式。已发布版本保持不可变。错误码：9401 模板不存在；9404 底图不可用；9405 设计不合法；9406 版本冲突。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:template:edit",
+        "parameters": [
+          {
+            "name": "certificateTemplateId",
+            "in": "path",
+            "required": true,
+            "description": "证书模板 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateTemplateUpdateRequest"
+              },
+              "example": {
+                "version": 3,
+                "templateName": "安全培训合格证（新版）",
+                "status": 1,
+                "description": "适用于安全培训达标学员",
+                "backgroundFileId": 5001,
+                "widthPx": 1024,
+                "heightPx": 768,
+                "versionNote": "调整姓名样式",
+                "elements": [
+                  {
+                    "elementType": "VARIABLE",
+                    "variableCode": "HOLDER_NAME",
+                    "xPosition": 260,
+                    "yPosition": 320,
+                    "fontFamily": "SansSerif",
+                    "fontSize": 36,
+                    "fontColor": "#112233",
+                    "sortOrder": 1,
+                    "status": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除证书模板",
+        "description": "权限：`certificate:template:delete`。仅允许删除未被签发规则引用的模板。错误码：9401 模板不存在；9403 模板已被签发规则使用。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:template:delete",
+        "parameters": [
+          {
+            "name": "certificateTemplateId",
+            "in": "path",
+            "required": true,
+            "description": "证书模板 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/certificate/rule-source-candidates": {
+      "get": {
+        "summary": "分页查询签发规则来源候选",
+        "description": "权限：`certificate:rule:list`。仅返回当前机构可绑定的独立来源：已发布且不属于培训计划的课程、ONLINE 且已发布且非培训计划派生的理论考试、已发布或进行中的培训计划。培训计划内的课程与考试随培训结果发证，不作为候选。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:rule:list",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "required": false,
+            "description": "页码，从 1 开始；默认 1。",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "description": "每页数量；默认 20。",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 20,
+              "example": 20
+            }
+          },
+          {
+            "name": "query.sourceType",
+            "in": "query",
+            "required": true,
+            "description": "来源类型。`COURSE` 独立课程；`EXAM` 独立理论考试，不含培训计划派生考试；`TRAINING` 培训计划。",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "COURSE",
+                "EXAM",
+                "TRAINING"
+              ],
+              "example": "COURSE"
+            }
+          },
+          {
+            "name": "query.keyword",
+            "in": "query",
+            "required": false,
+            "description": "按来源编码或名称模糊查询。",
+            "schema": {
+              "type": "string",
+              "example": "有限空间"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultCertificateRuleSourceCandidateVO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "list": [
+                      {
+                        "sourceType": "COURSE",
+                        "sourceId": 20,
+                        "sourceCode": "COURSE-001",
+                        "sourceName": "有限空间作业课程",
+                        "publishStatus": "PUBLISHED"
+                      }
+                    ],
+                    "total": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/certificate/rules/{certificateRuleId}": {
+      "get": {
+        "summary": "查询证书签发规则详情",
+        "description": "权限：`certificate:rule:list`。返回模板名称、来源名称、自动签发状态与乐观锁版本。错误码：9411 签发规则不存在。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:rule:list",
+        "parameters": [
+          {
+            "name": "certificateRuleId",
+            "in": "path",
+            "required": true,
+            "description": "证书签发规则 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 3
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCertificateIssueRuleVO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "certificateRuleId": 3,
+                    "organizationId": 10,
+                    "ruleName": "课程达标自动签发",
+                    "certificateTemplateId": 1,
+                    "certificateTemplateName": "安全培训合格证",
+                    "sourceType": "COURSE",
+                    "sourceId": 20,
+                    "sourceName": "有限空间作业课程",
+                    "conditionType": "PASS",
+                    "isAutoIssue": 1,
+                    "status": 1,
+                    "version": 4
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "summary": "更新证书签发规则",
+        "description": "权限：`certificate:rule:edit`。仅可绑定已发布模板和当前机构可绑定来源；同一来源对象在启用状态下至多存在一条规则。错误码：9407 模板不可绑定；9408 来源不可绑定；9409 版本冲突；9411 规则不存在；9412 规则重复；9418 该来源已存在启用规则。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:rule:edit",
+        "parameters": [
+          {
+            "name": "certificateRuleId",
+            "in": "path",
+            "required": true,
+            "description": "证书签发规则 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 3
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateIssueRuleUpdateRequest"
+              },
+              "example": {
+                "version": 4,
+                "ruleName": "课程达标自动签发（新版）",
+                "certificateTemplateId": 1,
+                "sourceType": "COURSE",
+                "sourceId": 20,
+                "conditionType": "PASS",
+                "isAutoIssue": 1,
+                "status": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除证书签发规则",
+        "description": "权限：`certificate:rule:delete`。错误码：9411 签发规则不存在。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:rule:delete",
+        "parameters": [
+          {
+            "name": "certificateRuleId",
+            "in": "path",
+            "required": true,
+            "description": "证书签发规则 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 3
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/certificate/templates/{certificateTemplateId}/background": {
+      "get": {
+        "summary": "查看证书模板底图",
+        "description": "权限：`certificate:template:list`。返回模板当前设计所用底图原图（优先草稿版本，无草稿时取当前发布版本），供设计器按真实底图所见即所得定位元素。",
+        "tags": [
+          "CertificateController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "certificate:template:list",
+        "parameters": [
+          {
+            "name": "certificateTemplateId",
+            "in": "path",
+            "required": true,
+            "description": "证书模板 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "证书底图图片文件。",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "example": "iVBORw0KGgo="
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ResultEnvelope": {
+        "type": "object",
+        "description": "统一 Result 包装。",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务码，0 成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息。",
+            "example": "success"
+          },
+          "data": {
+            "description": "业务数据。",
+            "nullable": true
+          }
+        }
+      },
+      "CertificateTemplateCreateRequest": {
+        "type": "object",
+        "description": "创建证书模板请求。",
+        "required": [
+          "templateCode",
+          "templateName",
+          "status"
+        ],
+        "properties": {
+          "templateCode": {
+            "type": "string",
+            "description": "机构内唯一的模板编码。",
+            "example": "CERT-TPL-001"
+          },
+          "templateName": {
+            "type": "string",
+            "description": "模板名称。",
+            "example": "安全培训合格证"
+          },
+          "description": {
+            "type": "string",
+            "description": "模板说明。",
+            "example": "通用安全培训证书",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态：1 启用，0 停用。",
+            "example": 1
+          }
+        }
+      },
+      "CertificateTemplateUpdateRequest": {
+        "type": "object",
+        "description": "更新证书模板请求。",
+        "required": [
+          "version",
+          "templateName",
+          "status",
+          "backgroundFileId",
+          "widthPx",
+          "heightPx",
+          "elements"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号。",
+            "example": 3
+          },
+          "templateName": {
+            "type": "string",
+            "description": "模板名称。",
+            "example": "安全培训合格证（新版）"
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态：1 启用，0 停用。",
+            "example": 1
+          },
+          "description": {
+            "type": "string",
+            "description": "模板说明。",
+            "example": "适用于安全培训达标学员",
+            "nullable": true
+          },
+          "backgroundFileId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "草稿版本底图文件 ID。",
+            "example": 5001
+          },
+          "widthPx": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "草稿画布宽度，单位像素。",
+            "example": 1024
+          },
+          "heightPx": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "草稿画布高度，单位像素。",
+            "example": 768
+          },
+          "versionNote": {
+            "type": "string",
+            "description": "草稿版本说明。",
+            "example": "调整姓名位置和字号",
+            "nullable": true
+          },
+          "elements": {
+            "type": "array",
+            "description": "完整草稿元素列表；保存时整体替换。",
+            "items": {
+              "$ref": "#/components/schemas/CertificateElementRequest"
+            }
+          }
+        }
+      },
+      "CertificateElementRequest": {
+        "type": "object",
+        "description": "证书模板元素。",
+        "required": [
+          "elementType",
+          "xPosition",
+          "yPosition",
+          "sortOrder",
+          "status"
+        ],
+        "properties": {
+          "elementType": {
+            "type": "string",
+            "description": "元素类型：TEXT 静态文字、VARIABLE 动态变量。",
+            "example": "VARIABLE",
+            "enum": [
+              "TEXT",
+              "VARIABLE"
+            ]
+          },
+          "variableCode": {
+            "type": "string",
+            "description": "变量编码；变量元素使用。",
+            "example": "HOLDER_NAME",
+            "nullable": true
+          },
+          "staticContent": {
+            "type": "string",
+            "description": "静态文字内容；静态元素使用。",
+            "example": "安全培训合格证",
+            "nullable": true
+          },
+          "xPosition": {
+            "type": "integer",
+            "description": "元素左上角横坐标，单位像素。",
+            "example": 120
+          },
+          "yPosition": {
+            "type": "integer",
+            "description": "元素左上角纵坐标，单位像素。",
+            "example": 240
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "元素宽度，单位像素。",
+            "example": 300,
+            "nullable": true
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "元素高度，单位像素。",
+            "example": 48,
+            "nullable": true
+          },
+          "fontFamily": {
+            "type": "string",
+            "description": "字体名称；为空时使用逻辑无衬线字体。",
+            "example": "SansSerif",
+            "nullable": true
+          },
+          "fontSize": {
+            "type": "integer",
+            "description": "字号；为空时使用默认字号。",
+            "example": 36,
+            "nullable": true
+          },
+          "fontColor": {
+            "type": "string",
+            "description": "十六进制字体颜色。",
+            "example": "#112233",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "description": "元素显示顺序。",
+            "example": 1
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态：1 启用，0 停用。",
+            "example": 1
+          }
+        }
+      },
+      "CertificateTemplatePublishRequest": {
+        "type": "object",
+        "description": "发布证书模板版本请求。",
+        "required": [
+          "version",
+          "backgroundFileId",
+          "widthPx",
+          "heightPx",
+          "elements"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "description": "模板乐观锁版本号。",
+            "example": 3
+          },
+          "backgroundFileId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "模板底图文件 ID。",
+            "example": 5001
+          },
+          "widthPx": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "证书画布宽度，单位像素。",
+            "example": 1024
+          },
+          "heightPx": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "证书画布高度，单位像素。",
+            "example": 768
+          },
+          "versionNote": {
+            "type": "string",
+            "description": "版本说明。",
+            "example": "首版发布",
+            "nullable": true
+          },
+          "elements": {
+            "type": "array",
+            "description": "证书模板元素列表。",
+            "items": {
+              "$ref": "#/components/schemas/CertificateElementRequest"
+            }
+          }
+        }
+      },
+      "CertificateIssueRuleCreateRequest": {
+        "type": "object",
+        "description": "创建证书签发规则请求。",
+        "required": [
+          "ruleName",
+          "certificateTemplateId",
+          "sourceType",
+          "sourceId",
+          "conditionType",
+          "isAutoIssue",
+          "status"
+        ],
+        "properties": {
+          "ruleName": {
+            "type": "string",
+            "description": "规则名称。",
+            "example": "课程达标自动签发"
+          },
+          "certificateTemplateId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "证书模板 ID。",
+            "example": 1
+          },
+          "sourceType": {
+            "type": "string",
+            "description": "来源类型：COURSE 课程、EXAM 理论考试、TRAINING 培训。",
+            "example": "COURSE",
+            "enum": [
+              "COURSE",
+              "EXAM",
+              "TRAINING"
+            ]
+          },
+          "sourceId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "来源业务对象 ID。",
+            "example": 20
+          },
+          "conditionType": {
+            "type": "string",
+            "description": "签发条件类型；当前仅支持 PASS。",
+            "example": "PASS",
+            "enum": [
+              "PASS"
+            ]
+          },
+          "isAutoIssue": {
+            "type": "integer",
+            "description": "是否自动签发：1 是，0 否。",
+            "example": 1
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态：1 启用，0 停用。",
+            "example": 1
+          }
+        }
+      },
+      "CertificateTemplateVO": {
+        "type": "object",
+        "description": "证书模板信息。",
+        "required": [
+          "certificateTemplateId",
+          "organizationId",
+          "templateCode",
+          "templateName",
+          "currentVersionNo",
+          "status",
+          "version"
+        ],
+        "properties": {
+          "certificateTemplateId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "证书模板 ID。",
+            "example": 1
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "所属机构 ID。",
+            "example": 10
+          },
+          "templateCode": {
+            "type": "string",
+            "description": "模板编码。",
+            "example": "CERT-TPL-001"
+          },
+          "templateName": {
+            "type": "string",
+            "description": "模板名称。",
+            "example": "安全培训合格证"
+          },
+          "currentVersionNo": {
+            "type": "integer",
+            "description": "当前已发布版本号；尚未发布时为 0。",
+            "example": 2
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态：1 启用，0 停用。",
+            "example": 1
+          },
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号。",
+            "example": 3
+          },
+          "currentPublishedVersion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CertificateTemplateVersionVO"
+              }
+            ],
+            "description": "当前已发布版本；尚未发布时为空。",
+            "nullable": true
+          },
+          "draftVersion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CertificateTemplateVersionVO"
+              }
+            ],
+            "description": "当前可编辑草稿版本；尚未保存草稿时为空。",
+            "nullable": true
+          }
+        }
+      },
+      "CertificateTemplateElementVO": {
+        "type": "object",
+        "description": "证书模板版本元素。",
+        "required": [
+          "templateElementId",
+          "elementType",
+          "xPosition",
+          "yPosition",
+          "sortOrder",
+          "status"
+        ],
+        "properties": {
+          "templateElementId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "模板元素 ID。",
+            "example": 9001
+          },
+          "elementType": {
+            "type": "string",
+            "description": "元素类型：TEXT 或 VARIABLE。",
+            "enum": [
+              "TEXT",
+              "VARIABLE"
+            ],
+            "example": "VARIABLE"
+          },
+          "variableCode": {
+            "type": "string",
+            "description": "变量编码。",
+            "example": "HOLDER_NAME",
+            "nullable": true
+          },
+          "staticContent": {
+            "type": "string",
+            "description": "静态文字内容。",
+            "example": "安全培训合格证",
+            "nullable": true
+          },
+          "xPosition": {
+            "type": "integer",
+            "description": "横坐标，单位像素。",
+            "example": 120
+          },
+          "yPosition": {
+            "type": "integer",
+            "description": "纵坐标，单位像素。",
+            "example": 240
+          },
+          "width": {
+            "type": "integer",
+            "description": "元素宽度，单位像素。",
+            "example": 300,
+            "nullable": true
+          },
+          "height": {
+            "type": "integer",
+            "description": "元素高度，单位像素。",
+            "example": 48,
+            "nullable": true
+          },
+          "fontFamily": {
+            "type": "string",
+            "description": "字体名称。",
+            "example": "SansSerif",
+            "nullable": true
+          },
+          "fontSize": {
+            "type": "integer",
+            "description": "字号。",
+            "example": 36,
+            "nullable": true
+          },
+          "fontColor": {
+            "type": "string",
+            "description": "十六进制字体颜色。",
+            "example": "#112233",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "description": "显示顺序。",
+            "example": 1
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态：1 启用，0 停用。",
+            "example": 1
+          }
+        }
+      },
+      "CertificateTemplateVersionVO": {
+        "type": "object",
+        "description": "证书模板设计版本及其完整元素。",
+        "required": [
+          "templateVersionId",
+          "versionNo",
+          "backgroundFileId",
+          "widthPx",
+          "heightPx",
+          "publishedStatus",
+          "elements"
+        ],
+        "properties": {
+          "templateVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "模板版本 ID。",
+            "example": 101
+          },
+          "versionNo": {
+            "type": "integer",
+            "description": "版本号。",
+            "example": 2
+          },
+          "backgroundFileId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "底图文件 ID。",
+            "example": 5001
+          },
+          "widthPx": {
+            "type": "integer",
+            "description": "画布宽度，单位像素。",
+            "example": 1024
+          },
+          "heightPx": {
+            "type": "integer",
+            "description": "画布高度，单位像素。",
+            "example": 768
+          },
+          "publishedStatus": {
+            "type": "string",
+            "description": "版本状态。",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "example": "DRAFT"
+          },
+          "versionNote": {
+            "type": "string",
+            "description": "版本说明。",
+            "example": "调整姓名样式",
+            "nullable": true
+          },
+          "elements": {
+            "type": "array",
+            "description": "版本元素列表。",
+            "items": {
+              "$ref": "#/components/schemas/CertificateTemplateElementVO"
+            }
+          }
+        }
+      },
+      "CertificateIssueRuleVO": {
+        "type": "object",
+        "description": "证书签发规则信息。",
+        "required": [
+          "certificateRuleId",
+          "organizationId",
+          "ruleName",
+          "certificateTemplateId",
+          "certificateTemplateName",
+          "sourceType",
+          "sourceId",
+          "sourceName",
+          "conditionType",
+          "isAutoIssue",
+          "status",
+          "version"
+        ],
+        "properties": {
+          "certificateRuleId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "签发规则 ID。",
+            "example": 3
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "所属机构 ID。",
+            "example": 10
+          },
+          "ruleName": {
+            "type": "string",
+            "description": "规则名称。",
+            "example": "课程达标自动签发"
+          },
+          "certificateTemplateId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "证书模板 ID。",
+            "example": 1
+          },
+          "certificateTemplateName": {
+            "type": "string",
+            "description": "证书模板名称。",
+            "example": "安全培训合格证"
+          },
+          "sourceType": {
+            "type": "string",
+            "description": "来源类型。",
+            "example": "COURSE"
+          },
+          "sourceId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "来源业务对象 ID。",
+            "example": 20
+          },
+          "sourceName": {
+            "type": "string",
+            "description": "来源业务对象名称；历史来源已不可见时为空。",
+            "example": "有限空间作业课程",
+            "nullable": true
+          },
+          "conditionType": {
+            "type": "string",
+            "description": "签发条件类型。",
+            "example": "PASS"
+          },
+          "isAutoIssue": {
+            "type": "integer",
+            "description": "是否自动签发：1 是，0 否。",
+            "example": 1
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态：1 启用，0 停用。",
+            "example": 1
+          },
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号。",
+            "example": 4
+          }
+        }
+      },
+      "CertificateIssueRuleUpdateRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CertificateIssueRuleCreateRequest"
+          },
+          {
+            "type": "object",
+            "description": "更新证书签发规则请求。",
+            "required": [
+              "version"
+            ],
+            "properties": {
+              "version": {
+                "type": "integer",
+                "description": "乐观锁版本号。",
+                "example": 4
+              }
+            }
+          }
+        ]
+      },
+      "CertificateRuleSourceCandidateVO": {
+        "type": "object",
+        "description": "当前机构可绑定到签发规则的统一来源候选。",
+        "required": [
+          "sourceType",
+          "sourceId",
+          "sourceCode",
+          "sourceName",
+          "publishStatus"
+        ],
+        "properties": {
+          "sourceType": {
+            "type": "string",
+            "description": "来源类型。",
+            "enum": [
+              "COURSE",
+              "EXAM",
+              "TRAINING"
+            ],
+            "example": "COURSE"
+          },
+          "sourceId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "来源业务对象 ID。",
+            "example": 20
+          },
+          "sourceCode": {
+            "type": "string",
+            "description": "来源编码。",
+            "example": "COURSE-001"
+          },
+          "sourceName": {
+            "type": "string",
+            "description": "来源名称。",
+            "example": "有限空间作业课程"
+          },
+          "publishStatus": {
+            "type": "string",
+            "description": "来源当前可绑定状态。",
+            "example": "PUBLISHED"
+          }
+        }
+      },
+      "PageResultCertificateRuleSourceCandidateVO": {
+        "type": "object",
+        "description": "统一规则来源候选分页。",
+        "required": [
+          "list",
+          "total"
+        ],
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页候选。",
+            "items": {
+              "$ref": "#/components/schemas/CertificateRuleSourceCandidateVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "符合条件的总记录数。",
+            "example": 1
+          }
+        }
+      },
+      "CertificateVO": {
+        "type": "object",
+        "description": "已签发证书信息。",
+        "required": [
+          "certificateId",
+          "organizationId",
+          "certificateNo",
+          "holderUserId",
+          "sourceType",
+          "sourceId",
+          "certificateStatus",
+          "issuedTime",
+          "certificateFileId"
+        ],
+        "properties": {
+          "certificateId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "证书 ID。",
+            "example": 8
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "所属机构 ID。",
+            "example": 10
+          },
+          "certificateNo": {
+            "type": "string",
+            "description": "证书编号。",
+            "example": "CERT-2026-0008"
+          },
+          "holderUserId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "持有人用户 ID。",
+            "example": 1001
+          },
+          "sourceType": {
+            "type": "string",
+            "description": "来源类型。",
+            "example": "COURSE"
+          },
+          "sourceId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "来源业务对象 ID。",
+            "example": 20
+          },
+          "sourceName": {
+            "type": "string",
+            "nullable": true,
+            "description": "来源课程、考试或培训计划的当前名称；来源不可见时为空。",
+            "example": "有限空间作业课程"
+          },
+          "certificateStatus": {
+            "type": "string",
+            "description": "证书状态。",
+            "example": "ISSUED"
+          },
+          "issuedTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "签发时间。",
+            "example": "2026-09-20T10:00:00"
+          },
+          "certificateFileId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "真实证书文件 ID。",
+            "example": 5008
+          }
+        }
+      },
+      "PageResultCertificateTemplateVO": {
+        "type": "object",
+        "description": "证书模板分页结果。",
+        "required": [
+          "list",
+          "total"
+        ],
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页数据。",
+            "items": {
+              "$ref": "#/components/schemas/CertificateTemplateVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "符合条件的总记录数。",
+            "example": 1
+          }
+        }
+      },
+      "PageResultCertificateVO": {
+        "type": "object",
+        "description": "证书分页结果。",
+        "required": [
+          "list",
+          "total"
+        ],
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页数据。",
+            "items": {
+              "$ref": "#/components/schemas/CertificateVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "符合条件的总记录数。",
+            "example": 1
+          }
+        }
+      },
+      "ResultId": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "ID 成功响应。",
+            "properties": {
+              "data": {
+                "type": "integer",
+                "format": "int64",
+                "description": "新建资源 ID。",
+                "example": 1
+              }
+            }
+          }
+        ]
+      },
+      "ResultVoid": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "无数据成功响应。",
+            "properties": {
+              "data": {
+                "nullable": true,
+                "description": "无业务返回数据。",
+                "example": null
+              }
+            }
+          }
+        ]
+      },
+      "ResultCertificateTemplateVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "证书模板详情响应。",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/CertificateTemplateVO"
+              }
+            }
+          }
+        ]
+      },
+      "ResultPageResultCertificateTemplateVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "证书模板分页响应。",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/PageResultCertificateTemplateVO"
+              }
+            }
+          }
+        ]
+      },
+      "ResultCertificateIssueRuleList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "证书签发规则列表响应。",
+            "properties": {
+              "data": {
+                "type": "array",
+                "description": "证书签发规则列表。",
+                "items": {
+                  "$ref": "#/components/schemas/CertificateIssueRuleVO"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ResultCertificateIssueRuleVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "证书签发规则详情响应。",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/CertificateIssueRuleVO"
+              }
+            }
+          }
+        ]
+      },
+      "ResultPageResultCertificateRuleSourceCandidateVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "统一规则来源候选分页响应。",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/PageResultCertificateRuleSourceCandidateVO"
+              }
+            }
+          }
+        ]
+      },
+      "ResultPageResultCertificateVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ResultEnvelope"
+          },
+          {
+            "type": "object",
+            "description": "证书分页响应。",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/PageResultCertificateVO"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "请求参数或业务前置条件不满足。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 4000,
+              "message": "请求参数不正确",
+              "data": null
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "未登录或登录态已失效。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 1002,
+              "message": "未登录",
+              "data": null
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "没有接口权限或数据访问权限。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 1003,
+              "message": "无权限访问",
+              "data": null
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "目标业务对象不存在或不可见。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 4040,
+              "message": "资源不存在",
+              "data": null
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "资源状态、版本或唯一性冲突。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultEnvelope"
+            },
+            "example": {
+              "code": 4090,
+              "message": "当前状态不允许该操作",
+              "data": null
+            }
+          }
+        }
+      }
+    }
+  }
+}

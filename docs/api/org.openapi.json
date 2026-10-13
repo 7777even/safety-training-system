@@ -1,0 +1,1931 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "机构主数据、成员与组织支撑 API 契约",
+    "version": "1.1.0",
+    "description": "STS 机构域 OpenAPI，覆盖机构主数据查询/创建，以及机构成员、标签、岗位 CRUD。鉴权：Authorization Bearer {token}；权限码见各 operation 的 x-permission。角色与部门机构字段扩展见 system-admin.openapi.json。\n\n机构成员接口已下线：成员档案并入用户，改由 `/api/system/users` 维护；标签与岗位直接关联用户。"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "sts-service-admin context path"
+    }
+  ],
+  "tags": [
+    {
+      "name": "OrganizationController",
+      "description": "机构主数据登记与查询"
+    },
+    {
+      "name": "OrgTagController",
+      "description": "机构标签管理"
+    },
+    {
+      "name": "OrgPositionController",
+      "description": "机构岗位管理"
+    }
+  ],
+  "paths": {
+    "/api/org/organizations": {
+      "get": {
+        "summary": "分页查询租户",
+        "description": "分页查询租户。权限：`system:tenant:list`。superAdmin 可查全部；监管租户仅见企业与培训机构。其他账号 403/4048。",
+        "tags": [
+          "OrganizationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "system:tenant:list",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "页码，从 1 开始。",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页条数。",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "example": 20
+            }
+          },
+          {
+            "name": "query.keyword",
+            "in": "query",
+            "description": "企业编码或租户名称关键字。",
+            "schema": {
+              "type": "string",
+              "example": "示范"
+            }
+          },
+          {
+            "name": "query.orgType",
+            "in": "query",
+            "description": "租户类型。",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ENTERPRISE",
+                "TRAINING_INSTITUTION",
+                "REGULATOR"
+              ],
+              "example": "ENTERPRISE"
+            }
+          },
+          {
+            "name": "query.status",
+            "in": "query",
+            "description": "启用状态；1 正常，0 停用。",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ],
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PageResultOrganizationVO"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "list": [
+                      {
+                        "organizationId": 2,
+                        "orgCode": "ACME",
+                        "orgName": "示范企业",
+                        "orgType": "ENTERPRISE",
+                        "contactUserId": 100,
+                        "status": 1,
+                        "description": "示范企业租户",
+                        "version": 0,
+                        "createTime": "2026-08-06T12:00:00",
+                        "updateTime": "2026-08-06T12:00:00"
+                      }
+                    ],
+                    "total": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "summary": "创建租户（机构开户）",
+        "description": "权限：`system:tenant:add`；`superAdmin` 或监管租户可调用；普通企业账号返回 403 业务码 4048。\n\n企业编码全局唯一，保存时转为大写，创建后不可修改；企业与培训机构类型可明确互转；监管平台类型不可修改。监管平台租户（`REGULATOR`）由初始化建立，本接口禁止创建，返回 403 业务码 4048。\n\n开户为一个事务：只写入租户，并创建一个归属新租户的可登录管理员、local 凭证及其必要管理权限；不创建默认部门、岗位、标签、其它账号或业务数据。管理员初始无部门（deptId 为 null），登录后由机构自行创建部门并完成归属。凭证标识为 `{企业编码}:{管理员工号}`。",
+        "tags": [
+          "OrganizationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "system:tenant:add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationCreateRequest"
+              },
+              "example": {
+                "orgCode": "ACME",
+                "orgName": "示范企业",
+                "orgType": "ENTERPRISE",
+                "contactUserId": 100,
+                "status": 1,
+                "description": "示范企业租户",
+                "adminUserCode": "admin",
+                "adminUserName": "管理员",
+                "adminPassword": "240be518fabd2724ddb6f04eeb3a7a5f1b6e4727d4e58a6eb2c87a90d7d4f7e4"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "创建成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "integer",
+                          "format": "int64",
+                          "description": "新建租户 ID。",
+                          "example": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": 2
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/org/organizations/{organizationId}": {
+      "get": {
+        "summary": "查询租户详情",
+        "description": "权限：`system:tenant:list`。superAdmin 或监管租户可调用。",
+        "tags": [
+          "OrganizationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "system:tenant:list",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "description": "租户 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 2
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/OrganizationVO"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "organizationId": 2,
+                    "orgCode": "ACME",
+                    "orgName": "示范企业",
+                    "orgType": "ENTERPRISE",
+                    "contactUserId": 100,
+                    "status": 1,
+                    "description": "示范企业租户",
+                    "version": 0,
+                    "createTime": "2026-08-06T12:00:00",
+                    "updateTime": "2026-08-06T12:00:00"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "summary": "修改租户",
+        "description": "权限：`system:tenant:edit`。superAdmin 或监管租户可调用。企业编码不可修改；企业与培训机构类型可明确改写。停用通过 `status=0`。",
+        "tags": [
+          "OrganizationController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "system:tenant:edit",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "description": "租户 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 2
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationUpdateRequest"
+              },
+              "example": {
+                "orgName": "示范企业",
+                "contactUserId": 100,
+                "status": 0,
+                "description": "已停用",
+                "version": 3
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "修改成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEnvelope"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/org/tags": {
+      "get": {
+        "summary": "分页查询标签",
+        "description": "权限：`org:tag:list`。按机构、名称模糊、启停用状态筛选。",
+        "tags": [
+          "OrgTagController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "org:tag:list",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "页码，从 1 开始。",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页条数。",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "example": 20
+            }
+          },
+          {
+            "name": "query.organizationId",
+            "in": "query",
+            "description": "机构 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          },
+          {
+            "name": "query.tagName",
+            "in": "query",
+            "description": "标签名称，模糊匹配。",
+            "schema": {
+              "type": "string",
+              "example": "一线"
+            }
+          },
+          {
+            "name": "query.status",
+            "in": "query",
+            "description": "启用状态；1 正常，0 停用。",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ],
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "description": "操作成功。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ResultEnvelope"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "$ref": "#/components/schemas/PageResultOrgTagVO"
+                      }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "code": 0,
+                "message": "success",
+                "data": {
+                  "list": [
+                    {
+                      "tagId": 11,
+                      "organizationId": 1,
+                      "tagName": "一线员工",
+                      "description": "生产一线人员标签",
+                      "status": 1,
+                      "version": 0,
+                      "createTime": "2026-07-24T10:00:00"
+                    }
+                  ],
+                  "total": 1
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "summary": "创建标签",
+        "description": "权限：`org:tag:add`。机构内标签名唯一。错误码：4001 重名；4003 机构不存在。",
+        "tags": [
+          "OrgTagController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "org:tag:add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgTagCreateRequest"
+              },
+              "example": {
+                "organizationId": 1,
+                "tagName": "一线员工",
+                "description": "生产一线人员标签",
+                "status": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "description": "操作成功。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ResultEnvelope"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "新建标签 ID。"
+                      }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "code": 0,
+                "message": "success",
+                "data": 11
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/org/tags/{tagId}": {
+      "get": {
+        "summary": "标签详情",
+        "description": "权限：`org:tag:list`。错误码：4004 不存在。",
+        "tags": [
+          "OrgTagController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "org:tag:list",
+        "parameters": [
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "description": "标签 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 11
+            }
+          }
+        ],
+        "responses": {
+          "description": "操作成功。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ResultEnvelope"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "$ref": "#/components/schemas/OrgTagVO"
+                      }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "code": 0,
+                "message": "success",
+                "data": {
+                  "tagId": 11,
+                  "organizationId": 1,
+                  "tagName": "一线员工",
+                  "description": "生产一线人员标签",
+                  "status": 1,
+                  "version": 0,
+                  "createTime": "2026-07-24T10:00:00"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "put": {
+        "summary": "更新标签",
+        "description": "权限：`org:tag:edit`。乐观锁冲突返回 409/2040。错误码：4001 重名；4004 不存在。",
+        "tags": [
+          "OrgTagController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "org:tag:edit",
+        "parameters": [
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "description": "标签 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 11
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgTagUpdateRequest"
+              },
+              "example": {
+                "tagName": "一线员工",
+                "description": "生产一线人员标签",
+                "status": 1,
+                "version": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "description": "操作成功。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ResultEnvelope"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "nullable": true,
+                        "description": "业务数据。"
+                      }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "code": 0,
+                "message": "success",
+                "data": null
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除标签",
+        "description": "权限：`org:tag:delete`。仍被成员引用时拒绝。错误码：4002 占用；4004 不存在。",
+        "tags": [
+          "OrgTagController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "org:tag:delete",
+        "parameters": [
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "description": "标签 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 11
+            }
+          }
+        ],
+        "responses": {
+          "description": "操作成功。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ResultEnvelope"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "nullable": true,
+                        "description": "业务数据。"
+                      }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "code": 0,
+                "message": "success",
+                "data": null
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/org/positions": {
+      "get": {
+        "summary": "分页查询岗位",
+        "description": "权限：`org:position:list`。按机构、编码/名称模糊、启停用状态筛选。",
+        "tags": [
+          "OrgPositionController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "org:position:list",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "页码，从 1 开始。",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页条数。",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "example": 20
+            }
+          },
+          {
+            "name": "query.organizationId",
+            "in": "query",
+            "description": "机构 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          },
+          {
+            "name": "query.positionCode",
+            "in": "query",
+            "description": "岗位编码，模糊匹配。",
+            "schema": {
+              "type": "string",
+              "example": "POS_"
+            }
+          },
+          {
+            "name": "query.positionName",
+            "in": "query",
+            "description": "岗位名称，模糊匹配。",
+            "schema": {
+              "type": "string",
+              "example": "安全"
+            }
+          },
+          {
+            "name": "query.status",
+            "in": "query",
+            "description": "启用状态；1 正常，0 停用。",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ],
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "description": "操作成功。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ResultEnvelope"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "$ref": "#/components/schemas/PageResultOrgPositionVO"
+                      }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "code": 0,
+                "message": "success",
+                "data": {
+                  "list": [
+                    {
+                      "positionId": 21,
+                      "organizationId": 1,
+                      "positionCode": "POS_SAFETY",
+                      "positionName": "安全员",
+                      "description": "现场安全员岗位",
+                      "status": 1,
+                      "version": 0,
+                      "createTime": "2026-07-24T10:05:00"
+                    }
+                  ],
+                  "total": 1
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "summary": "创建岗位",
+        "description": "权限：`org:position:add`。机构内岗位编码唯一。错误码：4011 编码冲突；4003 机构不存在。",
+        "tags": [
+          "OrgPositionController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "org:position:add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgPositionCreateRequest"
+              },
+              "example": {
+                "organizationId": 1,
+                "positionCode": "POS_SAFETY",
+                "positionName": "安全员",
+                "description": "现场安全员岗位",
+                "status": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "description": "操作成功。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ResultEnvelope"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "新建岗位 ID。"
+                      }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "code": 0,
+                "message": "success",
+                "data": 21
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/org/positions/{positionId}": {
+      "get": {
+        "summary": "岗位详情",
+        "description": "权限：`org:position:list`。错误码：4013 不存在。",
+        "tags": [
+          "OrgPositionController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "org:position:list",
+        "parameters": [
+          {
+            "name": "positionId",
+            "in": "path",
+            "required": true,
+            "description": "岗位 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 21
+            }
+          }
+        ],
+        "responses": {
+          "description": "操作成功。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ResultEnvelope"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "$ref": "#/components/schemas/OrgPositionVO"
+                      }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "code": 0,
+                "message": "success",
+                "data": {
+                  "positionId": 21,
+                  "organizationId": 1,
+                  "positionCode": "POS_SAFETY",
+                  "positionName": "安全员",
+                  "description": "现场安全员岗位",
+                  "status": 1,
+                  "version": 0,
+                  "createTime": "2026-07-24T10:05:00"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "put": {
+        "summary": "更新岗位",
+        "description": "权限：`org:position:edit`。错误码：4011 编码冲突；4013 不存在。",
+        "tags": [
+          "OrgPositionController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "org:position:edit",
+        "parameters": [
+          {
+            "name": "positionId",
+            "in": "path",
+            "required": true,
+            "description": "岗位 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 21
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgPositionUpdateRequest"
+              },
+              "example": {
+                "positionCode": "POS_SAFETY",
+                "positionName": "安全员",
+                "description": "现场安全员岗位",
+                "status": 1,
+                "version": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "description": "操作成功。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ResultEnvelope"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "nullable": true,
+                        "description": "业务数据。"
+                      }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "code": 0,
+                "message": "success",
+                "data": null
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除岗位",
+        "description": "权限：`org:position:delete`。仍被成员引用时拒绝。错误码：4012 占用；4013 不存在。",
+        "tags": [
+          "OrgPositionController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "org:position:delete",
+        "parameters": [
+          {
+            "name": "positionId",
+            "in": "path",
+            "required": true,
+            "description": "岗位 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 21
+            }
+          }
+        ],
+        "responses": {
+          "description": "操作成功。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ResultEnvelope"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "nullable": true,
+                        "description": "业务数据。"
+                      }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "code": 0,
+                "message": "success",
+                "data": null
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "未登录或登录已失效。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 1002,
+              "message": "未登录",
+              "data": null
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "缺少接口所需权限。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 1003,
+              "message": "权限不足",
+              "data": null
+            }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "参数校验失败。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 1001,
+              "message": "参数校验失败",
+              "data": null
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "目标机构不存在。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 4040,
+              "message": "机构不存在",
+              "data": null
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "机构编码冲突或业务状态不允许操作。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 4041,
+              "message": "机构编码已存在",
+              "data": null
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ResultEnvelope": {
+        "type": "object",
+        "description": "所有非 ResponseEntity 的 Controller 返回值均由 ResultEasyTransAdvice 自动包装为本结构。",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务状态码；成功固定为 0。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息。",
+            "example": "success"
+          },
+          "data": {
+            "description": "业务数据；失败时一般为 null。",
+            "nullable": true
+          }
+        }
+      },
+      "PageResult": {
+        "type": "object",
+        "description": "分页接口的 data 结构。",
+        "required": [
+          "list",
+          "total"
+        ],
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页记录。",
+            "items": {}
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "符合筛选条件的总记录数。",
+            "example": 1
+          }
+        }
+      },
+      "OrgTagCreateRequest": {
+        "type": "object",
+        "description": "创建机构标签请求。",
+        "required": [
+          "organizationId",
+          "tagName"
+        ],
+        "properties": {
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "所属机构 ID。",
+            "example": 1
+          },
+          "tagName": {
+            "type": "string",
+            "description": "标签名称；机构内唯一（含逻辑删除维度）。",
+            "example": "一线员工"
+          },
+          "description": {
+            "type": "string",
+            "description": "标签描述。",
+            "example": "生产一线人员标签"
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态；1 正常，0 停用。",
+            "example": 1,
+            "enum": [
+              0,
+              1
+            ],
+            "default": 1
+          }
+        }
+      },
+      "OrgTagUpdateRequest": {
+        "type": "object",
+        "description": "更新机构标签请求。",
+        "required": [
+          "tagName",
+          "status",
+          "version"
+        ],
+        "properties": {
+          "tagName": {
+            "type": "string",
+            "description": "标签名称；机构内唯一。",
+            "example": "一线员工"
+          },
+          "description": {
+            "type": "string",
+            "description": "标签描述。",
+            "example": "生产一线人员标签"
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态；1 正常，0 停用。",
+            "example": 1,
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号。",
+            "example": 0
+          }
+        }
+      },
+      "OrgTagVO": {
+        "type": "object",
+        "description": "机构标签详情。",
+        "properties": {
+          "tagId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "标签 ID。",
+            "example": 11
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "所属机构 ID。",
+            "example": 1
+          },
+          "orgName": {
+            "type": "string",
+            "description": "所属机构名称；由服务端展示翻译按 organizationId 回填，翻译缺失时为 null。",
+            "example": "示例企业"
+          },
+          "tagName": {
+            "type": "string",
+            "description": "标签名称。",
+            "example": "一线员工"
+          },
+          "description": {
+            "type": "string",
+            "description": "标签描述。",
+            "example": "生产一线人员标签"
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态；1 正常，0 停用。",
+            "example": 1,
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号。",
+            "example": 0
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "创建时间。",
+            "example": "2026-07-24T10:00:00"
+          }
+        }
+      },
+      "PageResultOrgTagVO": {
+        "type": "object",
+        "description": "标签分页结果。",
+        "required": [
+          "list",
+          "total"
+        ],
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页标签。",
+            "items": {
+              "$ref": "#/components/schemas/OrgTagVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "总记录数。",
+            "example": 1
+          }
+        }
+      },
+      "OrgPositionCreateRequest": {
+        "type": "object",
+        "description": "创建机构岗位请求。",
+        "required": [
+          "organizationId",
+          "positionCode",
+          "positionName"
+        ],
+        "properties": {
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "所属机构 ID。",
+            "example": 1
+          },
+          "positionCode": {
+            "type": "string",
+            "description": "岗位编码；机构内唯一。",
+            "example": "POS_SAFETY"
+          },
+          "positionName": {
+            "type": "string",
+            "description": "岗位名称。",
+            "example": "安全员"
+          },
+          "description": {
+            "type": "string",
+            "description": "岗位描述。",
+            "example": "现场安全员岗位"
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态；1 正常，0 停用。",
+            "example": 1,
+            "enum": [
+              0,
+              1
+            ],
+            "default": 1
+          }
+        }
+      },
+      "OrgPositionUpdateRequest": {
+        "type": "object",
+        "description": "更新机构岗位请求。",
+        "required": [
+          "positionCode",
+          "positionName",
+          "status",
+          "version"
+        ],
+        "properties": {
+          "positionCode": {
+            "type": "string",
+            "description": "岗位编码；机构内唯一。",
+            "example": "POS_SAFETY"
+          },
+          "positionName": {
+            "type": "string",
+            "description": "岗位名称。",
+            "example": "安全员"
+          },
+          "description": {
+            "type": "string",
+            "description": "岗位描述。",
+            "example": "现场安全员岗位"
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态；1 正常，0 停用。",
+            "example": 1,
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号。",
+            "example": 0
+          }
+        }
+      },
+      "OrgPositionVO": {
+        "type": "object",
+        "description": "机构岗位详情。",
+        "properties": {
+          "positionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "岗位 ID。",
+            "example": 21
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "所属机构 ID。",
+            "example": 1
+          },
+          "orgName": {
+            "type": "string",
+            "description": "所属机构名称；由服务端展示翻译按 organizationId 回填，翻译缺失时为 null。",
+            "example": "示例企业"
+          },
+          "positionCode": {
+            "type": "string",
+            "description": "岗位编码。",
+            "example": "POS_SAFETY"
+          },
+          "positionName": {
+            "type": "string",
+            "description": "岗位名称。",
+            "example": "安全员"
+          },
+          "description": {
+            "type": "string",
+            "description": "岗位描述。",
+            "example": "现场安全员岗位"
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态；1 正常，0 停用。",
+            "example": 1,
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号。",
+            "example": 0
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "创建时间。",
+            "example": "2026-07-24T10:05:00"
+          }
+        }
+      },
+      "PageResultOrgPositionVO": {
+        "type": "object",
+        "description": "岗位分页结果。",
+        "required": [
+          "list",
+          "total"
+        ],
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页岗位。",
+            "items": {
+              "$ref": "#/components/schemas/OrgPositionVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "总记录数。",
+            "example": 1
+          }
+        }
+      },
+      "OrganizationCreateRequest": {
+        "type": "object",
+        "description": "创建租户请求；开户只附带创建一个初始无部门的企业管理员及其必要认证授权数据。",
+        "required": [
+          "orgCode",
+          "orgName",
+          "orgType",
+          "adminPassword"
+        ],
+        "properties": {
+          "orgCode": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "description": "企业编码，登录入口标识，全局唯一；保存时转为大写，创建后不可修改。",
+            "example": "ACME"
+          },
+          "orgName": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "租户名称。",
+            "example": "示范企业"
+          },
+          "orgType": {
+            "type": "string",
+            "enum": [
+              "ENTERPRISE",
+              "TRAINING_INSTITUTION",
+              "REGULATOR"
+            ],
+            "description": "租户类型：ENTERPRISE 企业 / TRAINING_INSTITUTION 培训机构 / REGULATOR 监管平台。企业与培训机构可由管理员明确改写。",
+            "example": "ENTERPRISE"
+          },
+          "contactUserId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "联系人用户 ID；必须是有效且启用的用户。",
+            "example": 100
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "default": 1,
+            "description": "启用状态；1 正常，0 停用。",
+            "example": 1
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "租户说明。",
+            "example": "示范企业租户"
+          },
+          "adminUserCode": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "default": "admin",
+            "description": "初始管理员工号，在新租户内唯一。",
+            "example": "admin"
+          },
+          "adminUserName": {
+            "type": "string",
+            "maxLength": 64,
+            "default": "管理员",
+            "description": "初始管理员名称。",
+            "example": "管理员"
+          },
+          "adminPassword": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$",
+            "writeOnly": true,
+            "description": "初始管理员密码（SHA-256 64 位十六进制摘要）。开户必须建立可登录的管理员，否则新租户无人可进入。",
+            "example": "240be518fabd2724ddb6f04eeb3a7a5f1b6e4727d4e58a6eb2c87a90d7d4f7e4"
+          }
+        }
+      },
+      "OrganizationVO": {
+        "type": "object",
+        "description": "租户信息。",
+        "properties": {
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "租户 ID，即全系统 tenant_id。",
+            "example": 2
+          },
+          "orgCode": {
+            "type": "string",
+            "description": "企业编码，登录入口标识。",
+            "example": "ACME"
+          },
+          "orgName": {
+            "type": "string",
+            "description": "租户名称。",
+            "example": "示范企业"
+          },
+          "orgType": {
+            "type": "string",
+            "enum": [
+              "ENTERPRISE",
+              "TRAINING_INSTITUTION",
+              "REGULATOR"
+            ],
+            "description": "租户类型：ENTERPRISE 企业 / TRAINING_INSTITUTION 培训机构 / REGULATOR 监管平台。",
+            "example": "ENTERPRISE"
+          },
+          "contactUserId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "联系人用户 ID。",
+            "example": 100
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "启用状态。",
+            "example": 1
+          },
+          "description": {
+            "type": "string",
+            "description": "租户说明。",
+            "example": "示范企业租户"
+          },
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号。",
+            "example": 0
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "创建时间。",
+            "example": "2026-08-06T12:00:00"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "更新时间。",
+            "example": "2026-08-06T12:00:00"
+          }
+        }
+      },
+      "PageResultOrganizationVO": {
+        "type": "object",
+        "description": "机构分页结果。",
+        "required": [
+          "list",
+          "total"
+        ],
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页机构。",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "总记录数。",
+            "example": 1
+          }
+        }
+      },
+      "OrgBusinessErrorCodes": {
+        "type": "object",
+        "description": "机构域业务错误码（4000-4049 段；供联调参考）。",
+        "properties": {
+          "4001": {
+            "type": "string",
+            "example": "标签名称已存在"
+          },
+          "4002": {
+            "type": "string",
+            "example": "标签仍被成员引用，无法删除"
+          },
+          "4003": {
+            "type": "string",
+            "example": "机构不存在"
+          },
+          "4004": {
+            "type": "string",
+            "example": "标签不存在"
+          },
+          "4011": {
+            "type": "string",
+            "example": "岗位编码已存在"
+          },
+          "4012": {
+            "type": "string",
+            "example": "岗位仍被成员引用，无法删除"
+          },
+          "4013": {
+            "type": "string",
+            "example": "岗位不存在"
+          },
+          "4021": {
+            "type": "string",
+            "example": "成员已存在或工号冲突"
+          },
+          "4022": {
+            "type": "string",
+            "example": "标签不存在或不属于当前机构"
+          },
+          "4023": {
+            "type": "string",
+            "example": "主岗位必须包含在岗位列表中"
+          },
+          "4024": {
+            "type": "string",
+            "example": "岗位不存在或不属于当前机构"
+          },
+          "4025": {
+            "type": "string",
+            "example": "用户不存在"
+          },
+          "4026": {
+            "type": "string",
+            "example": "用户主部门不属于目标机构"
+          },
+          "4027": {
+            "type": "string",
+            "example": "该用户已是机构成员"
+          },
+          "4028": {
+            "type": "string",
+            "example": "工号已存在"
+          },
+          "4029": {
+            "type": "string",
+            "example": "成员类型无效"
+          },
+          "4030": {
+            "type": "string",
+            "example": "机构成员不存在"
+          },
+          "4031": {
+            "type": "string",
+            "example": "当前用户不是有效机构成员"
+          },
+          "4032": {
+            "type": "string",
+            "example": "用户主部门与机构成员归属不一致"
+          },
+          "4040": {
+            "type": "string",
+            "example": "机构不存在"
+          },
+          "4041": {
+            "type": "string",
+            "example": "机构编码已存在"
+          },
+          "4043": {
+            "type": "string",
+            "example": "上级机构无效或已停用"
+          },
+          "4047": {
+            "type": "string",
+            "example": "联系人无效或已停用"
+          },
+          "4049": {
+            "type": "string",
+            "example": "当前数据范围不允许创建或查看机构"
+          }
+        }
+      },
+      "OrganizationUpdateRequest": {
+        "type": "object",
+        "description": "修改租户请求。企业编码不可修改；企业与培训机构类型可明确改写。",
+        "required": [
+          "orgName",
+          "status",
+          "version"
+        ],
+        "properties": {
+          "orgName": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "租户名称。",
+            "example": "示范企业"
+          },
+          "orgType": {
+            "type": "string",
+            "enum": [
+              "ENTERPRISE",
+              "TRAINING_INSTITUTION"
+            ],
+            "description": "可选。仅允许企业与培训机构互转。",
+            "example": "TRAINING_INSTITUTION"
+          },
+          "contactUserId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "联系人用户 ID；必须是有效且启用的用户。",
+            "example": 100
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "启用状态；1 正常，0 停用。停用后该租户账号不能登录。",
+            "example": 0
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "租户说明。",
+            "example": "已停用"
+          },
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号；与库中不一致返回 409。",
+            "example": 3
+          }
+        }
+      }
+    }
+  }
+}

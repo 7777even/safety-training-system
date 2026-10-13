@@ -1,0 +1,2189 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "问卷 API 契约",
+    "version": "1.0.1",
+    "description": "STS M4 问卷最小闭环：设计、复制、电脑/手机预览、投放、填写链接与二维码内容、本人提交、结果可见性和基础统计。独立发布版本管理和复杂目标绑定不再对外提供；投放时内部冻结题目快照。鉴权：Authorization Bearer {token}。错误码 9000-9199。按 SurveyController 分组阅读。"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "sts-service-admin context path"
+    }
+  ],
+  "tags": [
+    {
+      "name": "SurveyController",
+      "description": "问卷设计、投放、填写与统计（com.sts.survey.controller.SurveyController）"
+    }
+  ],
+  "paths": {
+    "/api/survey/surveys": {
+      "get": {
+        "summary": "分页查询问卷",
+        "description": "权限：`survey:survey:list`。按编码、名称、内容状态和启用状态过滤。列表不含题目。",
+        "tags": [
+          "SurveyController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "survey:survey:list",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "页码，从 1 开始。",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页条数。",
+            "schema": {
+              "type": "integer",
+              "example": 20
+            }
+          },
+          {
+            "name": "query.surveyCode",
+            "in": "query",
+            "description": "问卷编码。",
+            "schema": {
+              "type": "string",
+              "example": "SV-2026-001"
+            }
+          },
+          {
+            "name": "query.surveyName",
+            "in": "query",
+            "description": "问卷名称关键字。",
+            "schema": {
+              "type": "string",
+              "example": "培训满意度"
+            }
+          },
+          {
+            "name": "query.contentStatus",
+            "in": "query",
+            "description": "内容状态：DRAFT 未投放，PUBLISHED 已投放。",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRAFT",
+                "PUBLISHED"
+              ],
+              "example": "DRAFT"
+            }
+          },
+          {
+            "name": "query.status",
+            "in": "query",
+            "description": "启用状态；1 正常，0 停用。",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ],
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PageResultSurveyVO"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "list": [
+                      {
+                        "surveyId": 1,
+                        "organizationId": 1,
+                        "surveyCode": "SV-2026-001",
+                        "surveyName": "培训满意度问卷",
+                        "surveyType": "TRAINING",
+                        "contentStatus": "DRAFT",
+                        "status": 1,
+                        "version": 0
+                      }
+                    ],
+                    "total": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "summary": "创建未投放问卷",
+        "description": "权限：`survey:survey:add`。用途仅限 TRAINING 线下培训调查或 ORGANIZATION_EVALUATION 培训机构评价。错误码：9002 同机构编码已存在；9012 用途不支持。",
+        "tags": [
+          "SurveyController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "survey:survey:add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SurveyCreateRequest"
+              },
+              "example": {
+                "surveyCode": "SV-2026-001",
+                "surveyName": "培训满意度问卷",
+                "surveyType": "TRAINING",
+                "description": "线下培训结束后收集反馈",
+                "status": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEnvelope"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/survey/surveys/{surveyId}": {
+      "get": {
+        "summary": "查询问卷详情",
+        "description": "权限：`survey:survey:list`。返回题目和选项。错误码：9001 问卷不存在。",
+        "tags": [
+          "SurveyController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "survey:survey:list",
+        "parameters": [
+          {
+            "name": "surveyId",
+            "in": "path",
+            "required": true,
+            "description": "问卷 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SurveyVO"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "surveyId": 1,
+                    "organizationId": 1,
+                    "surveyCode": "SV-2026-001",
+                    "surveyName": "培训满意度问卷",
+                    "surveyType": "TRAINING",
+                    "description": "线下培训结束后收集反馈",
+                    "contentStatus": "DRAFT",
+                    "status": 1,
+                    "version": 0,
+                    "questions": [
+                      {
+                        "surveyQuestionId": 11,
+                        "questionType": "SINGLE",
+                        "questionText": "您对本次培训是否满意？",
+                        "isRequired": 1,
+                        "sortOrder": 1,
+                        "options": [
+                          {
+                            "surveyOptionId": 21,
+                            "optionKey": "A",
+                            "optionContent": "满意",
+                            "sortOrder": 1
+                          },
+                          {
+                            "surveyOptionId": 22,
+                            "optionKey": "B",
+                            "optionContent": "一般",
+                            "sortOrder": 2
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "summary": "更新未投放问卷",
+        "description": "权限：`survey:survey:edit`。已投放问卷不可修改。错误码：9001、9003。",
+        "tags": [
+          "SurveyController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "survey:survey:edit",
+        "parameters": [
+          {
+            "name": "surveyId",
+            "in": "path",
+            "required": true,
+            "description": "问卷 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SurveyUpdateRequest"
+              },
+              "example": {
+                "version": 0,
+                "surveyName": "培训满意度问卷",
+                "description": "线下培训结束后收集反馈",
+                "status": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEnvelope"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除未投放问卷",
+        "description": "权限：`survey:survey:delete`。已投放问卷不可删除。错误码：9001、9013。",
+        "tags": [
+          "SurveyController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "survey:survey:delete",
+        "parameters": [
+          {
+            "name": "surveyId",
+            "in": "path",
+            "required": true,
+            "description": "问卷 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEnvelope"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/survey/surveys/{surveyId}/questions": {
+      "put": {
+        "summary": "替换未投放问卷题目",
+        "description": "权限：`survey:survey:edit`。仅支持 SINGLE、MULTIPLE、TEXT。单选/多选至少两个选项。错误码：9001、9003、9011、9018。",
+        "tags": [
+          "SurveyController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "survey:survey:edit",
+        "parameters": [
+          {
+            "name": "surveyId",
+            "in": "path",
+            "required": true,
+            "description": "问卷 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SurveyQuestionsReplaceRequest"
+              },
+              "example": {
+                "version": 0,
+                "questions": [
+                  {
+                    "questionType": "SINGLE",
+                    "questionText": "您对本次培训是否满意？",
+                    "isRequired": 1,
+                    "sortOrder": 1,
+                    "status": 1,
+                    "options": [
+                      {
+                        "optionKey": "A",
+                        "optionContent": "满意",
+                        "sortOrder": 1,
+                        "status": 1
+                      },
+                      {
+                        "optionKey": "B",
+                        "optionContent": "一般",
+                        "sortOrder": 2,
+                        "status": 1
+                      }
+                    ]
+                  },
+                  {
+                    "questionType": "MULTIPLE",
+                    "questionText": "您希望加强哪些内容？",
+                    "isRequired": 1,
+                    "sortOrder": 2,
+                    "status": 1,
+                    "options": [
+                      {
+                        "optionKey": "A",
+                        "optionContent": "法规",
+                        "sortOrder": 1,
+                        "status": 1
+                      },
+                      {
+                        "optionKey": "B",
+                        "optionContent": "实操",
+                        "sortOrder": 2,
+                        "status": 1
+                      }
+                    ]
+                  },
+                  {
+                    "questionType": "TEXT",
+                    "questionText": "其他建议",
+                    "isRequired": 0,
+                    "sortOrder": 3,
+                    "status": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEnvelope"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/survey/surveys/{surveyId}/copy": {
+      "post": {
+        "summary": "复制问卷为新草稿",
+        "description": "权限：`survey:survey:add`。复制名称、用途和最小闭环题目，生成未投放草稿。错误码：9001、9002。",
+        "tags": [
+          "SurveyController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "survey:survey:add",
+        "parameters": [
+          {
+            "name": "surveyId",
+            "in": "path",
+            "required": true,
+            "description": "被复制问卷 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SurveyCopyRequest"
+              },
+              "example": {
+                "surveyCode": "SV-2026-002",
+                "surveyName": "培训满意度问卷（副本）"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEnvelope"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": 2
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/survey/surveys/{surveyId}/preview": {
+      "get": {
+        "summary": "电脑或手机预览问卷",
+        "description": "权限：`survey:survey:list`。题目内容相同，client 区分电脑或手机展示。错误码：9001、9014。",
+        "tags": [
+          "SurveyController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "survey:survey:list",
+        "parameters": [
+          {
+            "name": "surveyId",
+            "in": "path",
+            "required": true,
+            "description": "问卷 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          },
+          {
+            "name": "client",
+            "in": "query",
+            "required": true,
+            "description": "预览端：PC 电脑，MOBILE 手机。",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PC",
+                "MOBILE"
+              ],
+              "example": "MOBILE"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SurveyPreviewVO"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "client": "MOBILE",
+                    "surveyId": 1,
+                    "surveyName": "培训满意度问卷",
+                    "surveyType": "TRAINING",
+                    "questions": [
+                      {
+                        "surveyQuestionId": 11,
+                        "questionType": "TEXT",
+                        "questionText": "其他建议",
+                        "isRequired": 0,
+                        "sortOrder": 3,
+                        "options": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/survey/instances": {
+      "get": {
+        "summary": "分页查询问卷投放",
+        "description": "权限：`survey:instance:list`。返回填写链接和二维码内容。",
+        "tags": [
+          "SurveyController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "survey:instance:list",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "页码，从 1 开始。",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页条数。",
+            "schema": {
+              "type": "integer",
+              "example": 20
+            }
+          },
+          {
+            "name": "query.surveyId",
+            "in": "query",
+            "description": "问卷 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          },
+          {
+            "name": "query.instanceStatus",
+            "in": "query",
+            "description": "投放状态。",
+            "schema": {
+              "type": "string",
+              "example": "PUBLISHED"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PageResultSurveyInstanceVO"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "list": [
+                      {
+                        "surveyInstanceId": 5,
+                        "instanceCode": "SVI-2026-001",
+                        "instanceName": "2026 春季培训调查",
+                        "surveyId": 1,
+                        "purpose": "TRAINING_SURVEY",
+                        "resultVisibility": "ADMIN_ONLY",
+                        "instanceStatus": "PUBLISHED",
+                        "fillUrl": "/survey/fill/5",
+                        "qrContent": "/survey/fill/5"
+                      }
+                    ],
+                    "total": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "summary": "创建问卷投放",
+        "description": "权限：`survey:instance:add`。用途为 TRAINING_SURVEY 线下培训调查或 ORG_EVALUATION 培训机构评价；结果可见方式为 ADMIN_ONLY 或 SUBMITTER_AFTER_SUBMIT。创建时内部冻结题目快照，并返回填写链接与二维码内容。错误码：9001、9005、9006、9007、9015、9016。",
+        "tags": [
+          "SurveyController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "survey:instance:add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SurveyInstanceCreateRequest"
+              },
+              "example": {
+                "instanceCode": "SVI-2026-001",
+                "instanceName": "2026 春季培训调查",
+                "surveyId": 1,
+                "purpose": "TRAINING_SURVEY",
+                "resultVisibility": "SUBMITTER_AFTER_SUBMIT",
+                "startTime": "2026-09-20T09:00:00",
+                "endTime": "2026-09-30T18:00:00"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SurveyInstanceVO"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "surveyInstanceId": 5,
+                    "instanceCode": "SVI-2026-001",
+                    "instanceName": "2026 春季培训调查",
+                    "surveyId": 1,
+                    "surveyVersionId": 88,
+                    "purpose": "TRAINING_SURVEY",
+                    "resultVisibility": "SUBMITTER_AFTER_SUBMIT",
+                    "instanceStatus": "PUBLISHED",
+                    "fillUrl": "/survey/fill/5",
+                    "qrContent": "/survey/fill/5"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/survey/instances/{surveyInstanceId}": {
+      "get": {
+        "summary": "查询投放详情",
+        "description": "权限：`survey:instance:list`。返回填写链接和二维码内容。错误码：9009。",
+        "tags": [
+          "SurveyController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-permission": "survey:instance:list",
+        "parameters": [
+          {
+            "name": "surveyInstanceId",
+            "in": "path",
+            "required": true,
+            "description": "投放实例 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 5
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SurveyInstanceVO"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "surveyInstanceId": 5,
+                    "instanceCode": "SVI-2026-001",
+                    "instanceName": "2026 春季培训调查",
+                    "surveyId": 1,
+                    "purpose": "TRAINING_SURVEY",
+                    "resultVisibility": "ADMIN_ONLY",
+                    "fillUrl": "/survey/fill/5",
+                    "qrContent": "/survey/fill/5"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/survey/instances/{surveyInstanceId}/fill": {
+      "get": {
+        "summary": "打开填写页",
+        "description": "登录即可。题目来自投放快照；用户 ID 从登录身份派生。错误码：9009。",
+        "tags": [
+          "SurveyController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "surveyInstanceId",
+            "in": "path",
+            "required": true,
+            "description": "投放实例 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 5
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SurveyFillVO"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "surveyInstanceId": 5,
+                    "surveyId": 1,
+                    "instanceName": "2026 春季培训调查",
+                    "surveyName": "培训满意度问卷",
+                    "purpose": "TRAINING_SURVEY",
+                    "resultVisibility": "SUBMITTER_AFTER_SUBMIT",
+                    "submitted": false,
+                    "questions": [
+                      {
+                        "surveyQuestionId": 11,
+                        "questionType": "SINGLE",
+                        "questionText": "您对本次培训是否满意？",
+                        "isRequired": 1,
+                        "sortOrder": 1,
+                        "options": [
+                          {
+                            "surveyOptionId": 21,
+                            "optionKey": "A",
+                            "optionContent": "满意",
+                            "sortOrder": 1
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "x-permission": "authenticated"
+      }
+    },
+    "/api/survey/instances/{surveyInstanceId}/submit": {
+      "post": {
+        "summary": "提交本人答卷",
+        "description": "登录即可。用户 ID 从登录身份派生；同一投放同一用户只接受一份有效答卷。错误码：9008、9009。",
+        "tags": [
+          "SurveyController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "surveyInstanceId",
+            "in": "path",
+            "required": true,
+            "description": "投放实例 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 5
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SurveySubmitRequest"
+              },
+              "example": {
+                "deviceType": "H5",
+                "answers": [
+                  {
+                    "surveyQuestionId": 11,
+                    "optionIds": [
+                      21
+                    ]
+                  },
+                  {
+                    "surveyQuestionId": 13,
+                    "answerText": "希望增加实操环节"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEnvelope"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "x-permission": "authenticated"
+      }
+    },
+    "/api/survey/instances/{surveyInstanceId}/stats": {
+      "get": {
+        "summary": "查看投放结果统计",
+        "description": "登录即可。管理员（`survey:instance:stats` 或 `survey:instance:list`）始终可看；填写人仅在 resultVisibility=SUBMITTER_AFTER_SUBMIT 且本人已提交后可看。返回答卷数、单选/多选选项计数和文本答案列表，不含评分均值。错误码：9009、9017。",
+        "tags": [
+          "SurveyController"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "surveyInstanceId",
+            "in": "path",
+            "required": true,
+            "description": "投放实例 ID。",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 5
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ResultEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SurveyStatsVO"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 0,
+                  "message": "success",
+                  "data": {
+                    "surveyInstanceId": 5,
+                    "totalSubmitted": 2,
+                    "questionStats": [
+                      {
+                        "surveyQuestionId": 11,
+                        "questionType": "SINGLE",
+                        "questionText": "您对本次培训是否满意？",
+                        "optionCounts": [
+                          {
+                            "surveyOptionId": 21,
+                            "optionContent": "满意",
+                            "count": 2
+                          }
+                        ],
+                        "textAnswers": []
+                      },
+                      {
+                        "surveyQuestionId": 13,
+                        "questionType": "TEXT",
+                        "questionText": "其他建议",
+                        "optionCounts": [],
+                        "textAnswers": [
+                          "希望增加实操环节"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "x-permission": "authenticated"
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "参数校验失败或业务请求不合法。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 1001,
+              "message": "参数校验失败",
+              "data": null
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "未登录或登录已失效。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 1002,
+              "message": "未登录",
+              "data": null
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "缺少权限或结果对当前用户不可见。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 9017,
+              "message": "无权查看该投放结果统计",
+              "data": null
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "问卷或投放不存在。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 9001,
+              "message": "问卷不存在",
+              "data": null
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "状态冲突，例如已投放不可改或重复提交。",
+        "content": {
+          "application/json": {
+            "example": {
+              "code": 9008,
+              "message": "该用户已提交答卷，不可重复提交",
+              "data": null
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ResultEnvelope": {
+        "type": "object",
+        "description": "统一 Result 包装。",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "业务码，0 成功。",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息。",
+            "example": "success"
+          },
+          "data": {
+            "description": "业务数据。",
+            "nullable": true
+          }
+        }
+      },
+      "SurveyCreateRequest": {
+        "type": "object",
+        "description": "创建未投放问卷。",
+        "required": [
+          "surveyCode",
+          "surveyName",
+          "surveyType",
+          "status"
+        ],
+        "properties": {
+          "surveyCode": {
+            "type": "string",
+            "description": "问卷编码，同机构唯一。",
+            "example": "SV-2026-001"
+          },
+          "surveyName": {
+            "type": "string",
+            "description": "问卷名称。",
+            "example": "培训满意度问卷"
+          },
+          "surveyType": {
+            "type": "string",
+            "description": "用途：TRAINING 线下培训调查，ORGANIZATION_EVALUATION 培训机构评价。",
+            "enum": [
+              "TRAINING",
+              "ORGANIZATION_EVALUATION"
+            ],
+            "example": "TRAINING"
+          },
+          "description": {
+            "type": "string",
+            "description": "问卷说明。",
+            "nullable": true,
+            "example": "线下培训结束后收集反馈"
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态；1 正常，0 停用。",
+            "enum": [
+              0,
+              1
+            ],
+            "example": 1
+          }
+        }
+      },
+      "SurveyUpdateRequest": {
+        "type": "object",
+        "description": "更新未投放问卷基本信息。",
+        "required": [
+          "version",
+          "surveyName",
+          "status"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号。",
+            "example": 0
+          },
+          "surveyName": {
+            "type": "string",
+            "description": "问卷名称。",
+            "example": "培训满意度问卷"
+          },
+          "description": {
+            "type": "string",
+            "description": "问卷说明。",
+            "nullable": true,
+            "example": "线下培训结束后收集反馈"
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态；1 正常，0 停用。",
+            "enum": [
+              0,
+              1
+            ],
+            "example": 1
+          }
+        }
+      },
+      "SurveyCopyRequest": {
+        "type": "object",
+        "description": "复制问卷为新草稿。",
+        "required": [
+          "surveyCode",
+          "surveyName"
+        ],
+        "properties": {
+          "surveyCode": {
+            "type": "string",
+            "description": "新问卷编码。",
+            "example": "SV-2026-002"
+          },
+          "surveyName": {
+            "type": "string",
+            "description": "新问卷名称。",
+            "example": "培训满意度问卷（副本）"
+          }
+        }
+      },
+      "SurveyQuestionsReplaceRequest": {
+        "type": "object",
+        "description": "整表替换题目。",
+        "required": [
+          "version",
+          "questions"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号。",
+            "example": 0
+          },
+          "questions": {
+            "type": "array",
+            "description": "题目列表。",
+            "items": {
+              "$ref": "#/components/schemas/SurveyQuestionRequest"
+            }
+          }
+        }
+      },
+      "SurveyQuestionRequest": {
+        "type": "object",
+        "description": "最小闭环题目。",
+        "required": [
+          "questionType",
+          "questionText",
+          "isRequired",
+          "sortOrder",
+          "status"
+        ],
+        "properties": {
+          "questionType": {
+            "type": "string",
+            "description": "题型：SINGLE 单选，MULTIPLE 多选，TEXT 文本。",
+            "enum": [
+              "SINGLE",
+              "MULTIPLE",
+              "TEXT"
+            ],
+            "example": "SINGLE"
+          },
+          "questionText": {
+            "type": "string",
+            "description": "题目文本。",
+            "example": "您对本次培训是否满意？"
+          },
+          "isRequired": {
+            "type": "integer",
+            "description": "是否必填；1 是，0 否。",
+            "enum": [
+              0,
+              1
+            ],
+            "example": 1
+          },
+          "sortOrder": {
+            "type": "integer",
+            "description": "显示顺序。",
+            "example": 1
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态。",
+            "enum": [
+              0,
+              1
+            ],
+            "example": 1
+          },
+          "options": {
+            "type": "array",
+            "description": "单选/多选选项；文本题不传。",
+            "items": {
+              "$ref": "#/components/schemas/SurveyOptionRequest"
+            }
+          }
+        }
+      },
+      "SurveyOptionRequest": {
+        "type": "object",
+        "description": "题目选项。",
+        "required": [
+          "optionKey",
+          "optionContent",
+          "sortOrder",
+          "status"
+        ],
+        "properties": {
+          "optionKey": {
+            "type": "string",
+            "description": "选项键。",
+            "example": "A"
+          },
+          "optionContent": {
+            "type": "string",
+            "description": "选项内容。",
+            "example": "满意"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "description": "显示顺序。",
+            "example": 1
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态。",
+            "enum": [
+              0,
+              1
+            ],
+            "example": 1
+          }
+        }
+      },
+      "SurveyInstanceCreateRequest": {
+        "type": "object",
+        "description": "创建一次问卷投放。",
+        "required": [
+          "instanceCode",
+          "instanceName",
+          "surveyId",
+          "purpose",
+          "resultVisibility"
+        ],
+        "properties": {
+          "instanceCode": {
+            "type": "string",
+            "description": "投放编码，同机构唯一。",
+            "example": "SVI-2026-001"
+          },
+          "instanceName": {
+            "type": "string",
+            "description": "投放名称。",
+            "example": "2026 春季培训调查"
+          },
+          "surveyId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "问卷 ID。",
+            "example": 1
+          },
+          "purpose": {
+            "type": "string",
+            "description": "投放用途：TRAINING_SURVEY 线下培训调查，ORG_EVALUATION 培训机构评价。",
+            "enum": [
+              "TRAINING_SURVEY",
+              "ORG_EVALUATION"
+            ],
+            "example": "TRAINING_SURVEY"
+          },
+          "resultVisibility": {
+            "type": "string",
+            "description": "结果可见方式：ADMIN_ONLY 仅管理员，SUBMITTER_AFTER_SUBMIT 提交后填写人可见。",
+            "enum": [
+              "ADMIN_ONLY",
+              "SUBMITTER_AFTER_SUBMIT"
+            ],
+            "example": "ADMIN_ONLY"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "填写开始时间。",
+            "nullable": true,
+            "example": "2026-09-20T09:00:00"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "填写截止时间。",
+            "nullable": true,
+            "example": "2026-09-30T18:00:00"
+          }
+        }
+      },
+      "SurveySubmitRequest": {
+        "type": "object",
+        "description": "本人提交答卷。",
+        "required": [
+          "answers"
+        ],
+        "properties": {
+          "deviceType": {
+            "type": "string",
+            "description": "设备类型：PC / APP / H5。",
+            "nullable": true,
+            "example": "H5"
+          },
+          "answers": {
+            "type": "array",
+            "description": "作答列表。",
+            "items": {
+              "$ref": "#/components/schemas/SurveyAnswerRequest"
+            }
+          }
+        }
+      },
+      "SurveyAnswerRequest": {
+        "type": "object",
+        "description": "单题作答。",
+        "required": [
+          "surveyQuestionId"
+        ],
+        "properties": {
+          "surveyQuestionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "题目 ID。",
+            "example": 11
+          },
+          "optionIds": {
+            "type": "array",
+            "description": "单选/多选选中的选项 ID。",
+            "items": {
+              "type": "integer",
+              "format": "int64",
+              "description": "选项 ID。",
+              "example": 21
+            }
+          },
+          "answerText": {
+            "type": "string",
+            "description": "文本题答案。",
+            "nullable": true,
+            "example": "希望增加实操环节"
+          }
+        }
+      },
+      "SurveyVO": {
+        "type": "object",
+        "description": "问卷视图；详情含题目，分页列表不含题目。",
+        "properties": {
+          "surveyId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "问卷 ID。",
+            "example": 1
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "机构 ID。",
+            "example": 1
+          },
+          "surveyCode": {
+            "type": "string",
+            "description": "问卷编码。",
+            "example": "SV-2026-001"
+          },
+          "surveyName": {
+            "type": "string",
+            "description": "问卷名称。",
+            "example": "培训满意度问卷"
+          },
+          "currentVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "内部投放快照 ID。",
+            "nullable": true,
+            "example": 88
+          },
+          "surveyType": {
+            "type": "string",
+            "description": "用途：TRAINING / ORGANIZATION_EVALUATION。",
+            "example": "TRAINING"
+          },
+          "description": {
+            "type": "string",
+            "description": "问卷说明。",
+            "nullable": true,
+            "example": "线下培训结束后收集反馈"
+          },
+          "contentStatus": {
+            "type": "string",
+            "description": "DRAFT 未投放，PUBLISHED 已投放。",
+            "example": "DRAFT"
+          },
+          "status": {
+            "type": "integer",
+            "description": "启用状态。",
+            "example": 1
+          },
+          "version": {
+            "type": "integer",
+            "description": "乐观锁版本号。",
+            "example": 0
+          },
+          "questions": {
+            "type": "array",
+            "description": "题目列表；仅详情返回。",
+            "items": {
+              "$ref": "#/components/schemas/SurveyQuestionVO"
+            }
+          }
+        }
+      },
+      "SurveyQuestionVO": {
+        "type": "object",
+        "description": "问卷题目。",
+        "properties": {
+          "surveyQuestionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "题目 ID。",
+            "example": 11
+          },
+          "questionType": {
+            "type": "string",
+            "description": "SINGLE / MULTIPLE / TEXT。",
+            "example": "SINGLE"
+          },
+          "questionText": {
+            "type": "string",
+            "description": "题目文本。",
+            "example": "您对本次培训是否满意？"
+          },
+          "isRequired": {
+            "type": "integer",
+            "description": "是否必填。",
+            "example": 1
+          },
+          "sortOrder": {
+            "type": "integer",
+            "description": "显示顺序。",
+            "example": 1
+          },
+          "options": {
+            "type": "array",
+            "description": "选项。",
+            "items": {
+              "$ref": "#/components/schemas/SurveyOptionVO"
+            }
+          }
+        }
+      },
+      "SurveyOptionVO": {
+        "type": "object",
+        "description": "题目选项。",
+        "properties": {
+          "surveyOptionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "选项 ID。",
+            "example": 21
+          },
+          "optionKey": {
+            "type": "string",
+            "description": "选项键。",
+            "example": "A"
+          },
+          "optionContent": {
+            "type": "string",
+            "description": "选项内容。",
+            "example": "满意"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "description": "显示顺序。",
+            "example": 1
+          }
+        }
+      },
+      "SurveyPreviewVO": {
+        "type": "object",
+        "description": "电脑或手机预览。",
+        "properties": {
+          "client": {
+            "type": "string",
+            "description": "PC 或 MOBILE。",
+            "example": "MOBILE"
+          },
+          "surveyId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "问卷 ID。",
+            "example": 1
+          },
+          "surveyName": {
+            "type": "string",
+            "description": "问卷名称。",
+            "example": "培训满意度问卷"
+          },
+          "surveyType": {
+            "type": "string",
+            "description": "问卷用途。",
+            "example": "TRAINING"
+          },
+          "questions": {
+            "type": "array",
+            "description": "预览题目。",
+            "items": {
+              "$ref": "#/components/schemas/SurveyQuestionVO"
+            }
+          }
+        }
+      },
+      "SurveyInstanceVO": {
+        "type": "object",
+        "description": "问卷投放，含填写链接和二维码内容。",
+        "properties": {
+          "surveyInstanceId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "投放 ID。",
+            "example": 5
+          },
+          "organizationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "机构 ID。",
+            "example": 1
+          },
+          "instanceCode": {
+            "type": "string",
+            "description": "投放编码。",
+            "example": "SVI-2026-001"
+          },
+          "instanceName": {
+            "type": "string",
+            "description": "投放名称。",
+            "example": "2026 春季培训调查"
+          },
+          "surveyId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "问卷 ID。",
+            "example": 1
+          },
+          "surveyVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "内部快照 ID。",
+            "example": 88
+          },
+          "purpose": {
+            "type": "string",
+            "description": "TRAINING_SURVEY / ORG_EVALUATION。",
+            "example": "TRAINING_SURVEY"
+          },
+          "resultVisibility": {
+            "type": "string",
+            "description": "ADMIN_ONLY / SUBMITTER_AFTER_SUBMIT。",
+            "example": "ADMIN_ONLY"
+          },
+          "instanceStatus": {
+            "type": "string",
+            "description": "投放状态。",
+            "example": "PUBLISHED"
+          },
+          "publishedTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "实际投放时间。",
+            "nullable": true,
+            "example": "2026-09-20T09:00:00"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "填写开始时间。",
+            "nullable": true,
+            "example": "2026-09-20T09:00:00"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "填写截止时间。",
+            "nullable": true,
+            "example": "2026-09-30T18:00:00"
+          },
+          "fillUrl": {
+            "type": "string",
+            "description": "可访问填写链接。",
+            "example": "/survey/fill/5"
+          },
+          "qrContent": {
+            "type": "string",
+            "description": "二维码编码内容，等于填写链接。",
+            "example": "/survey/fill/5"
+          }
+        }
+      },
+      "SurveyFillVO": {
+        "type": "object",
+        "description": "登录用户填写页。",
+        "properties": {
+          "surveyInstanceId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "投放 ID。",
+            "example": 5
+          },
+          "surveyId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "问卷 ID。",
+            "example": 1
+          },
+          "instanceName": {
+            "type": "string",
+            "description": "投放名称。",
+            "example": "2026 春季培训调查"
+          },
+          "surveyName": {
+            "type": "string",
+            "description": "问卷名称。",
+            "example": "培训满意度问卷"
+          },
+          "purpose": {
+            "type": "string",
+            "description": "投放用途。",
+            "example": "TRAINING_SURVEY"
+          },
+          "resultVisibility": {
+            "type": "string",
+            "description": "结果可见方式。",
+            "example": "SUBMITTER_AFTER_SUBMIT"
+          },
+          "submitted": {
+            "type": "boolean",
+            "description": "当前用户是否已提交。",
+            "example": false
+          },
+          "questions": {
+            "type": "array",
+            "description": "快照题目。",
+            "items": {
+              "$ref": "#/components/schemas/SurveyQuestionVO"
+            }
+          }
+        }
+      },
+      "SurveyStatsVO": {
+        "type": "object",
+        "description": "投放结果统计。",
+        "properties": {
+          "surveyInstanceId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "投放 ID。",
+            "example": 5
+          },
+          "totalSubmitted": {
+            "type": "integer",
+            "format": "int64",
+            "description": "有效答卷数。",
+            "example": 2
+          },
+          "questionStats": {
+            "type": "array",
+            "description": "分题统计。",
+            "items": {
+              "$ref": "#/components/schemas/SurveyQuestionStatsVO"
+            }
+          }
+        }
+      },
+      "SurveyQuestionStatsVO": {
+        "type": "object",
+        "description": "单题统计。",
+        "properties": {
+          "surveyQuestionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "题目 ID。",
+            "example": 11
+          },
+          "questionType": {
+            "type": "string",
+            "description": "题型。",
+            "example": "SINGLE"
+          },
+          "questionText": {
+            "type": "string",
+            "description": "题目文本。",
+            "example": "您对本次培训是否满意？"
+          },
+          "optionCounts": {
+            "type": "array",
+            "description": "单选/多选选项计数；文本题为空数组。",
+            "items": {
+              "$ref": "#/components/schemas/SurveyOptionCountVO"
+            }
+          },
+          "textAnswers": {
+            "type": "array",
+            "description": "文本答案列表；选择题为空数组。",
+            "items": {
+              "type": "string",
+              "description": "一条文本答案。",
+              "example": "希望增加实操环节"
+            }
+          }
+        }
+      },
+      "SurveyOptionCountVO": {
+        "type": "object",
+        "description": "选项计数。",
+        "properties": {
+          "surveyOptionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "选项 ID。",
+            "example": 21
+          },
+          "optionContent": {
+            "type": "string",
+            "description": "选项内容。",
+            "example": "满意"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "被选次数。",
+            "example": 2
+          }
+        }
+      },
+      "PageResultSurveyVO": {
+        "type": "object",
+        "description": "问卷分页。",
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页问卷。",
+            "items": {
+              "$ref": "#/components/schemas/SurveyVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "总条数。",
+            "example": 1
+          }
+        }
+      },
+      "PageResultSurveyInstanceVO": {
+        "type": "object",
+        "description": "投放分页。",
+        "properties": {
+          "list": {
+            "type": "array",
+            "description": "当前页投放。",
+            "items": {
+              "$ref": "#/components/schemas/SurveyInstanceVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "总条数。",
+            "example": 1
+          }
+        }
+      },
+      "SurveyBusinessErrorCodes": {
+        "type": "object",
+        "description": "问卷域业务错误码，供联调对照。",
+        "properties": {
+          "9001": {
+            "type": "string",
+            "description": "问卷不存在。"
+          },
+          "9002": {
+            "type": "string",
+            "description": "同机构下问卷编码已存在。"
+          },
+          "9003": {
+            "type": "string",
+            "description": "已投放问卷不可修改。"
+          },
+          "9005": {
+            "type": "string",
+            "description": "问卷题目不能为空。"
+          },
+          "9006": {
+            "type": "string",
+            "description": "问卷尚未形成投放快照。"
+          },
+          "9007": {
+            "type": "string",
+            "description": "同机构下实例编码已存在。"
+          },
+          "9008": {
+            "type": "string",
+            "description": "该用户已提交答卷，不可重复提交。"
+          },
+          "9009": {
+            "type": "string",
+            "description": "问卷投放实例不存在。"
+          },
+          "9010": {
+            "type": "string",
+            "description": "快照序列化失败。"
+          },
+          "9011": {
+            "type": "string",
+            "description": "题目仅支持单选、多选和文本。"
+          },
+          "9012": {
+            "type": "string",
+            "description": "问卷用途仅支持线下培训调查或培训机构评价。"
+          },
+          "9013": {
+            "type": "string",
+            "description": "已投放问卷不可删除。"
+          },
+          "9014": {
+            "type": "string",
+            "description": "预览端仅支持 PC 或 MOBILE。"
+          },
+          "9015": {
+            "type": "string",
+            "description": "投放用途仅支持线下培训调查或培训机构评价。"
+          },
+          "9016": {
+            "type": "string",
+            "description": "结果可见方式仅支持仅管理员或提交后填写人可见。"
+          },
+          "9017": {
+            "type": "string",
+            "description": "无权查看该投放结果统计。"
+          },
+          "9018": {
+            "type": "string",
+            "description": "单选和多选题至少需要两个选项。"
+          }
+        }
+      }
+    }
+  }
+}

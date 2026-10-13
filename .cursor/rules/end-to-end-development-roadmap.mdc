@@ -1,0 +1,84 @@
+---
+description: 安全教育培训系统必须遵循的端到端开发顺序与进度维护规则
+alwaysApply: true
+---
+
+# 端到端开发路线
+
+## 真相源
+
+- 长期路线：`docs/requirement/end-to-end-development-roadmap.md`
+- 进度记录：`engineering/plans/end-to-end-development-progress-tracker.md`
+- 唯一业务规格和 Task：当前已确认的 `openspec/changes/<change>/`
+- API Contract：`docs/api/`
+
+## 开发顺序
+
+1. 素材基础 CRUD 与课程闭环：机构/参与范围、素材元数据和文件关联 CRUD、管理端真实联调、学员 PC/移动学习和验收；转码不前置。
+2. 题库与试卷：知识点、题目版本、导入导出、组卷和不可变试卷版本。
+3. 考试与练习：安排、作答、判分、批阅、成绩发布、补考/练习及课程考试项回接。
+4. 培训标准与计划输入：监管关系、类型、标准、模板、严格机构隔离和评价表单。
+5. 培训计划与执行：计划、参训人、课程/考试/线下实例、签到、成绩、奖惩和教师任务。
+6. 问卷、评价与综合结果：问卷投放、评价、来源明细、不可变计算批次和正式结果。
+7. 档案与证书：三级档案、归档版本、证书模板、签发、查看、撤销和重发。
+8. 运营分析与工作台：真实待办、统计、下钻和导出。
+9. 园区监管监控与预警：基于稳定事实实现监管统计、规则、证据、预警和处置。
+10. 素材转码与媒体增强：最后实现真实异步转码、回调、派生文件、预览/播放、失败恢复、课程媒体学习回接和监控。
+
+仿真软件、仿真练习/考试和人脸识别本期延期，重新启动必须创建独立 OpenSpec Change。
+
+## 执行规则
+
+1. L3 / L4 开工前读取路线图、进度表、根及目标目录 `AGENTS.md` 和当前已确认 Change。
+2. 路线图只规定依赖顺序，不替代 OpenSpec，也不授权提前实现后续阶段；开发范围只以当前人工确认的 `tasks.md` 为准。
+3. 前一阶段未形成真实纵向闭环时，不得仅为占位而铺后续页面、空表或模块。
+4. Mock、桩服务、占位页面、设计草稿 DDL 或单层代码完成不得标记为端到端完成。
+5. 统计、档案、证书和预警必须读取稳定、可追溯的业务事实和已确认口径。
+6. 完成 Task 后先更新 OpenSpec `tasks.md`，再更新进度表的状态、负责人、日期、验收证据、阻塞项和行更新时间。
+7. 只有端到端验收、测试、双轴 Review 和文档同步全部通过，才关闭对应里程碑。
+8. 进度表仅登记能力状态，不得扩写成 `openspec/` 之外的第二套 Task。
+9. 本规则不改变其他 Cursor 协作边界。本仓库含前端；当 `git config user.name` 为 **`lims`** 时：不关注、不实施、不规划前端；设计/tasks 不含前端；交付后端 + `docs/api/*.openapi.json` 即可（见 `.cursor/rules/backend-only-collaboration.mdc` 与根 `AGENTS.md` §17.1）。非 lims 身份不受该条限制。
+10. 素材当前只推进基础 CRUD；阶段 1～9 不实施真实转码和媒体派生，完成 M5 后才可为阶段 10 创建并确认独立 Change。
+
+## Admin 模块两层测试规则
+
+适用 `backend/sts-service-admin/src/main/java/com/sts/admin/**`。详细样例见 `docs/architecture/test-strategy.md`，实际命令和
+source set 以 `backend/sts-service-admin/pom.xml` 为准。
+
+### 零 DB：`src/test/java` + `*Test`
+
+1. 不启动完整 Spring，不连接 MySQL、Redis、Nacos，不启动 Testcontainers。
+2. Controller 用 `MockMvcBuilders.standaloneSetup`、mock Service 和真实 `PageRequestArgumentResolver`，验证参数/路径透传、
+   分页与 `query.*` 绑定、CRUD 委托、`@Valid` 失败 400 且不进 Service。
+3. 横切 HTTP 契约变化时用 `XxxControllerWebSliceTest` 挂真实 `HttpApiExceptionHandler` 和
+   `ResultEasyTransAdvice`，验证 Result 包装、真实 HTTP 失败状态、1001、401/403 和序列化脱敏；Service 仍 mock。
+4. Service/认证/缓存用纯 Mockito 手动构造，覆盖成功路径与存在性、唯一性、superAdmin、占用、状态和权限护栏；断言
+   `BusinessException` 状态、业务码、关键副作用和未发生调用。
+5. `StpUtil` 用 try-with-resources 内的 `mockStatic`；替换静态全局对象必须 `@AfterEach` 还原。
+6. 密码语义用真实 `BCryptPasswordEncoder`，不以 mock 输出代替。
+7. 依赖 `TableInfoHelper`、`LambdaUpdateWrapper.set`、真实逻辑删除、分页/乐观锁插件或 SQL 的行为转入 IT。
+
+### 带 DB：`src/integrationTest/java` + `*IT`
+
+1. 继承 `AbstractMysqlIntegrationTest`，共享 `mysql:8.0.45` Testcontainers，并通过 `@DynamicPropertySource` 注入数据源。
+2. 使用 `MapperItConfig` 等最小 DataSource/MyBatis 切片；禁止为持久化验证启动完整应用、Web、Redis 或 Nacos。
+3. schema 复用 `backend/sql/` 中由 POM 拷入的脚本，禁止在测试资源复制第二份 DDL。
+4. 默认 `@Transactional` 回滚；数据最小、自包含，不依赖顺序或其他用例残留。
+5. 真库覆盖 Entity/列映射、审计填充、真实分页、乐观锁、`deleted=主键`、软删后唯一值复用、唯一索引、关联表物理删除/重建、
+   自定义 join/递归 CTE 和状态/可见性过滤。
+6. 只有验证 Service 事务与真实落库协作时才装最小 `@TestConfiguration`；其余优先 Mapper IT。
+7. `JdbcTemplate` 仅用于绕过 `@TableLogic` 读取原始列，不得替代 Mapper 实际写路径。
+8. 乐观锁过期对象手工创建并设置旧 `version`，避免 MyBatis 一级缓存掩盖冲突。
+9. Docker 不可用必须报告 IT 未执行，不能用零 DB 结果替代。
+
+### 去重、命令与门槛
+
+1. 零 DB 验业务逻辑，带 DB 验 SQL 和落库；不得在 IT 机械重复全部单测分支。
+2. Admin 新增行为和缺陷修复在正确层执行 Red → Green → Refactor。
+3. 在 `backend/` 运行零 DB：`mvn -pl sts-service-admin -am test`。
+4. 在 `backend/` 运行带 DB：`mvn -pl sts-service-admin -am -Pintegration-test test`。
+5. Admin 代码修改至少运行受影响零 DB 测试；涉及 Entity、Mapper、SQL、schema/索引、逻辑删除、分页、乐观锁或持久化事务时，
+   必须同时运行相关 IT。
+6. 交付报告实际命令、结果和未运行项，不用无关全量命令代替目标验证。
+7. 零 DB 参考 `SysUserControllerTest`、`SysUserControllerWebSliceTest`、`SysUserServiceImplTest`；带 DB 参考
+   `SysUserMapperIT`、`LogicDeleteServiceIT`、`RbacPermissionQueryIT`、`AssignmentMapperIT`、`MenuCrudPersistenceIT`。

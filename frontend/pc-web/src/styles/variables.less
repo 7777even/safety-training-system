@@ -1,0 +1,35 @@
+:root {
+  /* 清爽现代风：跨端共用的页面、文字与品牌语义色。 */
+  --font-family-base: Inter, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --layout-toolbar-height: 42px;
+  --layout-sidebar-width: 168px;
+  --layout-sidebar-collapsed-width: 48px;
+  --layout-content-padding: 16px;
+  --color-bg-page: #f8fafc;
+  --color-bg-surface: #ffffff;
+  --color-bg-subtle: #f9fafb;
+  --color-text-primary: #0f172a;
+  --color-text-regular: #374151;
+  --color-text-secondary: #64748b;
+  --color-border: #e5e7eb;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-subtle: #eff6ff;
+  --color-danger: #dc2626;
+
+  /* 控件与容器的统一形态，避免页面自行定义视觉规格。 */
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow-card-hover: 0 8px 16px rgb(15 23 42 / 0.08);
+
+  /* 保持既有基础样式入口兼容，逐步迁移页面时不改变原有引用方式。 */
+  --app-background: var(--color-bg-page);
+  --app-text-color: var(--color-text-primary);
+}

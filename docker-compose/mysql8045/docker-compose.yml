@@ -1,0 +1,21 @@
+services:
+  mysql:
+    image: mysql:8.0.45
+    container_name: mysql8045
+    environment:
+      MYSQL_ROOT_PASSWORD: XW0Jtkv3
+      TZ: Asia/Shanghai
+    volumes:
+      # 使用 Docker 命名卷存储数据
+      - /dmdata/unisense/docker/data/mysql8045:/var/lib/mysql
+      # 配置文件保留本地路径挂载（推荐）
+      - ./my.cnf:/etc/mysql/my.cnf
+    ports:
+      - "8045:3306"
+    networks:
+      - app-network
+
+networks:
+  # 引用之前创建的外部网络
+  app-network:
+    external: true

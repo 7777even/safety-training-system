@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sts.exam.mapper.ExamCandidateQueryMapper">
+
+  <select id="selectCandidatePage" resultType="com.sts.exam.vo.ExamCandidateVO">
+    SELECT
+    c.exam_candidate_id AS examCandidateId,
+    c.assessment_execution_id AS assessmentExecutionId,
+    x.exam_id AS examId,
+    c.user_id AS userId,
+    COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.candidate_profile_snapshot_json, '$.userName')), u.user_name)
+    AS learnerName,
+    COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.candidate_profile_snapshot_json, '$.userCode')), u.user_code)
+    AS learnerCode,
+    c.organization_id AS learnerOrganizationId,
+    COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.candidate_profile_snapshot_json, '$.organizationName')), org.org_name)
+    AS learnerOrganizationName,
+    u.dept_id AS deptId,
+    d.dept_name AS deptName,
+    x.source_type AS sourceType,
+    c.candidate_status AS candidateStatus,
+    c.attempt_count AS attemptCount,
+    c.best_score AS bestScore,
+    c.final_score AS finalScore,
+    c.final_attempt_id AS finalAttemptId,
+    c.result_published_time AS resultPublishedTime,
+    c.result_effective_time AS resultEffectiveTime,
+    c.version AS version
+    FROM sts_exam_candidate c
+    JOIN sts_assessment_execution x ON x.assessment_execution_id = c.assessment_execution_id AND x.deleted = 0
+    LEFT JOIN us_sys_user u ON u.user_id = c.user_id AND u.deleted = 0
+    LEFT JOIN us_sys_dept d ON d.dept_id = u.dept_id AND d.deleted = 0
+    LEFT JOIN sts_org_organization org ON org.organization_id = c.organization_id AND org.deleted = 0
+    WHERE c.deleted = 0
+    AND x.exam_id = #{examId}
+    <if test="query != null">
+      <if test="query.candidateStatus != null and query.candidateStatus != ''">
+        AND c.candidate_status = #{query.candidateStatus}
+      </if>
+      <!-- 租户条件由 TenantLineInnerInterceptor 自动注入到各业务表 -->
+      <if test="query.learnerKeyword != null and query.learnerKeyword != ''">
+        AND (
+        COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.candidate_profile_snapshot_json, '$.userName')), u.user_name)
+        LIKE CONCAT('%', #{query.learnerKeyword}, '%')
+        OR
+        COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.candidate_profile_snapshot_json, '$.userCode')), u.user_code)
+        LIKE CONCAT('%', #{query.learnerKeyword}, '%')
+        )
+      </if>
+    </if>
+    ORDER BY c.exam_candidate_id ASC
+  </select>
+</mapper>

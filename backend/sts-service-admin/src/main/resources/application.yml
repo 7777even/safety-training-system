@@ -1,0 +1,75 @@
+server:
+    port: 20080
+    servlet:
+        context-path: /api
+
+spring:
+    application:
+        name: sts-service-admin
+    profiles:
+      active: test
+
+    flyway:
+      enabled: false
+      locations: classpath:db/migration
+      validate-on-migrate: true
+      validate-migration-naming: true
+      fail-on-missing-locations: true
+      baseline-on-migrate: false
+      out-of-order: false
+      clean-disabled: true
+
+    servlet:
+      multipart:
+        max-file-size: 32MB
+        max-request-size: 48MB
+
+mybatis-plus:
+    mapper-locations: classpath*:/mapper/**/*.xml
+    type-aliases-package: com.sts.**.entity
+    global-config:
+        db-config:
+            id-type: auto
+    configuration:
+        map-underscore-to-camel-case: true
+        cache-enabled: false
+
+sts:
+  survey:
+    public-fill-url-prefix: /survey/fill
+  auth:
+    enabled-types:
+      - local
+    redis-key-prefix: "sts:satoken:"
+  caffeine:
+    specs:
+      display-user: "maximumSize=1024,expireAfterWrite=10m"
+      display-user-code: "maximumSize=1024,expireAfterWrite=10m"
+      display-dept: "maximumSize=128,expireAfterWrite=10m"
+      display-role: "maximumSize=128,expireAfterWrite=10m"
+      display-organization: "maximumSize=128,expireAfterWrite=10m"
+  cache:
+    key-prefix: sts:cache
+    evict:
+      channel: sts:cache:evict
+  async:
+    normal:
+      core-pool-size: 2
+      max-pool-size: 8
+      queue-capacity: 1024
+      thread-name-prefix: "normal-"
+    important:
+      core-pool-size: 4
+      max-pool-size: 32
+      queue-capacity: 10240
+      thread-name-prefix: "important-"
+
+sa-token:
+    token-name: Authorization
+    token-prefix: Bearer
+    timeout: 86400
+    active-timeout: -1
+    is-concurrent: true
+    is-share: false
+    token-style: uuid
+    is-log: false

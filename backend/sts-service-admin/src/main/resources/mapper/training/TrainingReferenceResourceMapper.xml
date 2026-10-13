@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sts.training.mapper.TrainingReferenceResourceMapper">
+  <!-- 租户条件由 TenantLineInnerInterceptor 注入到 sts_course_course / sts_exam_exam / sts_question_bank；
+       sts_org_organization 为豁免表，仅用于回显租户名称 -->
+  <select id="selectReferenceResourcePage" resultType="com.sts.training.vo.TrainingReferenceResourceVO">
+    <choose>
+      <when test="resourceType == 'COURSE'">
+        SELECT 'COURSE' AS resourceType,
+        c.course_id AS resourceId,
+        c.current_version_id AS versionId,
+        c.course_code AS resourceCode,
+        c.course_name AS resourceName,
+        c.organization_id AS organizationId,
+        o.org_name AS organizationName,
+        c.publish_status AS publishStatus,
+        c.status AS status,
+        TRUE AS executable
+        FROM sts_course_course c
+        JOIN sts_org_organization o ON o.organization_id = c.organization_id AND o.deleted = 0
+        WHERE c.deleted = 0
+        AND c.publish_status = 'PUBLISHED'
+        AND c.status = 1
+        AND c.current_version_id IS NOT NULL
+        <if test="keyword != null and keyword != ''">
+          AND (c.course_code LIKE CONCAT('%', #{keyword}, '%')
+          OR c.course_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY c.update_time DESC, c.course_id DESC
+      </when>
+      <when test="resourceType == 'EXAM'">
+        SELECT 'EXAM' AS resourceType,
+        e.exam_id AS resourceId,
+        e.paper_version_id AS versionId,
+        e.exam_code AS resourceCode,
+        e.exam_name AS resourceName,
+        e.organization_id AS organizationId,
+        o.org_name AS organizationName,
+        e.publish_status AS publishStatus,
+        e.status AS status,
+        TRUE AS executable
+        FROM sts_exam_exam e
+        JOIN sts_org_organization o ON o.organization_id = e.organization_id AND o.deleted = 0
+        WHERE e.deleted = 0
+        AND e.publish_status IN ('PUBLISHED', 'RUNNING')
+        AND e.status = 1
+        AND e.exam_type != 'BANK_PRACTICE'
+        AND e.paper_version_id IS NOT NULL
+        AND e.plan_content_id IS NULL
+        <if test="keyword != null and keyword != ''">
+          AND (e.exam_code LIKE CONCAT('%', #{keyword}, '%')
+          OR e.exam_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY e.update_time DESC, e.exam_id DESC
+      </when>
+      <otherwise>
+        SELECT 'QUESTION_BANK' AS resourceType,
+        b.question_bank_id AS resourceId,
+        NULL AS versionId,
+        b.bank_code AS resourceCode,
+        b.bank_name AS resourceName,
+        b.organization_id AS organizationId,
+        o.org_name AS organizationName,
+        b.archive_status AS publishStatus,
+        b.status AS status,
+        TRUE AS executable
+        FROM sts_question_bank b
+        JOIN sts_org_organization o ON o.organization_id = b.organization_id AND o.deleted = 0
+        WHERE b.deleted = 0
+        AND b.archive_status = 'ACTIVE'
+        AND b.status = 1
+        <if test="keyword != null and keyword != ''">
+          AND (b.bank_code LIKE CONCAT('%', #{keyword}, '%')
+          OR b.bank_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY b.update_time DESC, b.question_bank_id DESC
+      </otherwise>
+    </choose>
+  </select>
+</mapper>
