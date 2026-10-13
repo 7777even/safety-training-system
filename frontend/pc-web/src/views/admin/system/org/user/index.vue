@@ -3,12 +3,16 @@ import { sha256 } from '@shared/libs/sha256';
 import { onMounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElIcon } from 'element-plus';
+import { UploadFilled } from '@element-plus/icons-vue';
 import {
   createUser,
   deleteUser,
+  exportUsers,
   getDeptTree,
   getRoleOptions,
   getUserPage,
+  importUsers,
   resetUserPassword,
   updateUser,
   type DeptTreeNode,
@@ -16,6 +20,7 @@ import {
   type RoleOption,
   type SystemStatus,
   type SystemUser,
+  type UserImportResult,
   type UserListQuery
 } from '@/api/system-user';
 import { DEFAULT_LIST_PAGE_SIZE, LIST_PAGE_SIZES } from '@/constants/pagination';
@@ -315,6 +320,78 @@ function getRoleNames(roleIds: number[]): string {
   return roleIds.map((id) => roleOptions.value.find((role) => role.roleId === id)?.roleName).join('、');
 }
 
+/** 导出当前筛选条件下的用户为 CSV（UTF-8 BOM，Excel 可直接打开）。 */
+async function handleExport(): Promise<void> {
+  try {
+    const blob = await exportUsers(buildUserQuery());
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `users_${Date.now()}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success('导出已开始');
+  } catch {
+    /* 全局错误提示已覆盖 */
+  }
+}
+
+/** 用户导入弹窗与文件状态。 */
+const importDialogVisible = ref(false);
+const importFile = ref<File | null>(null);
+const importing = ref(false);
+const importResult = ref<UserImportResult | null>(null);
+
+function openImportDialog(): void {
+  importFile.value = null;
+  importResult.value = null;
+  importDialogVisible.value = true;
+}
+
+function onFileChange(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  importFile.value = input.files?.[0] ?? null;
+}
+
+/** ElUpload 变更回调：仅取首个本地文件用于导入。 */
+function onUploadChange(file: { raw?: File }): void {
+  importFile.value = file.raw ?? null;
+}
+
+/** 下载导入模板，表头与后端解析一致。 */
+function downloadTemplate(): void {
+  const header = '登录名,姓名,手机号,部门编码,状态\n';
+  const row = 'zhangsan,张三,13800000001,D_RD,1\n';
+  const blob = new Blob(['﻿' + header + row], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = 'user_import_template.csv';
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+/** 提交导入并展示逐行结果。 */
+async function submitImport(): Promise<void> {
+  if (!importFile.value) {
+    ElMessage.warning('请先选择 CSV 文件');
+    return;
+  }
+  importing.value = true;
+  try {
+    const result = await importUsers(importFile.value);
+    importResult.value = result;
+    if ((result.failedRows?.length ?? 0) === 0 && (result.fileErrors?.length ?? 0) === 0) {
+      ElMessage.success(`导入完成：成功 ${result.successCount}，跳过 ${result.skippedCount}`);
+      await loadUsers();
+    } else {
+      ElMessage.warning('导入存在失败行，请查看明细');
+    }
+  } finally {
+    importing.value = false;
+  }
+}
+
 onMounted(async () => {
   await Promise.all([loadUsers(), loadFormOptions()]);
 });
@@ -354,6 +431,8 @@ onMounted(async () => {
         <div class="admin-business-page__table-heading">
           <strong>用户列表</strong>
           <div class="admin-business-page__table-actions">
+            <ElButton v-if="canOperate('sys:user:export')" @click="handleExport">导出</ElButton>
+            <ElButton v-if="canOperate('sys:user:import')" type="primary" @click="openImportDialog">导入</ElButton>
             <ElButton v-if="canOperate('sys:user:add')" type="primary" @click="openCreateDialog">新增用户</ElButton>
           </div>
         </div>
@@ -529,6 +608,48 @@ onMounted(async () => {
       <template #footer>
         <ElButton @click="resetDialogVisible = false">取消</ElButton>
         <ElButton v-if="canOperate('sys:user:resetPwd')" type="primary" @click="submitPasswordReset">下一步</ElButton>
+      </template>
+    </ElDialog>
+
+    <ElDialog v-model="importDialogVisible" title="导入用户" width="560px" destroy-on-close :lock-scroll="false">
+      <div class="user-import-tip">
+        <p>请上传 CSV 文件，表头必须为：<code>登录名,姓名,手机号,部门编码,状态(可选)</code>。登录名重复的行将跳过（幂等），部门编码须属于当前租户。</p>
+        <ElButton link type="primary" @click="downloadTemplate">下载导入模板</ElButton>
+      </div>
+      <ElUpload
+        v-if="!importFile"
+        class="user-import-upload"
+        drag
+        accept=".csv,text/csv"
+        :auto-upload="false"
+        :show-file-list="false"
+        :on-change="onUploadChange"
+      >
+        <ElIcon class="el-icon--upload"><UploadFilled /></ElIcon>
+        <div class="el-upload__text">将 CSV 文件拖到此处，或<em>点击上传</em></div>
+      </ElUpload>
+      <div v-else class="user-import-file">
+        <span>{{ importFile.name }}</span>
+        <ElButton link type="danger" @click="importFile = null">移除</ElButton>
+      </div>
+      <div v-if="importResult" class="user-import-result">
+        <ElAlert
+          :type="(importResult.failedRows?.length ?? 0) === 0 && (importResult.fileErrors?.length ?? 0) === 0 ? 'success' : 'warning'"
+          :closable="false"
+          show-icon
+        >
+          成功 {{ importResult.successCount }}，跳过 {{ importResult.skippedCount }}
+        </ElAlert>
+        <ul v-if="importResult.fileErrors?.length">
+          <li v-for="err in importResult.fileErrors" :key="err" class="user-import-error">{{ err }}</li>
+        </ul>
+        <ul v-if="importResult.failedRows?.length">
+          <li v-for="row in importResult.failedRows" :key="row.line" class="user-import-error">第 {{ row.line }} 行：{{ row.reason }}</li>
+        </ul>
+      </div>
+      <template #footer>
+        <ElButton @click="importDialogVisible = false">关闭</ElButton>
+        <ElButton type="primary" :loading="importing" :disabled="!importFile" @click="submitImport">开始导入</ElButton>
       </template>
     </ElDialog>
   </section>

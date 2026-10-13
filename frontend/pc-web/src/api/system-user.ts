@@ -184,3 +184,43 @@ export async function getRoleOptions(): Promise<RoleOption[]> {
 
   return unwrapResponse(response).list;
 }
+
+/** 用户 CSV 导入的单行失败明细。 */
+export interface UserImportFailedRow {
+  line: number;
+  reason: string;
+}
+
+/** 用户 CSV 导入结果。 */
+export interface UserImportResult {
+  successCount: number;
+  skippedCount: number;
+  failedRows: UserImportFailedRow[];
+  fileErrors: string[];
+}
+
+/** 导出用户为 CSV：响应为文件流，直接返回 Blob 供前端下载。 */
+export async function exportUsers(query: UserListQuery): Promise<Blob> {
+  const response = await request<Blob>({
+    url: '/api/system/users/export',
+    method: 'GET',
+    params: query,
+    responseType: 'blob'
+  });
+
+  return response;
+}
+
+/** 从 CSV 批量导入用户；登录名重复则跳过，部门不存在或字段非法定位到行。 */
+export async function importUsers(file: File): Promise<UserImportResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await request<ApiResponse<UserImportResult>>({
+    url: '/api/system/users/import',
+    method: 'POST',
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+
+  return unwrapResponse(response);
+}
