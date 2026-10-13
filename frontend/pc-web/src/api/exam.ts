@@ -1,5 +1,6 @@
 import type { ApiResponse } from '@shared/types';
 import type { PersonSelectionRequest } from './person-selection';
+import type { UserImportResult } from './system-user';
 import * as examMock from '@/mock/exam';
 import { request } from './request';
 
@@ -273,6 +274,25 @@ export const getExamCandidates = (examId: number, params: ExamCandidatePageQuery
     () => examMock.mockGetExamCandidates(examId, params),
     () => request<ApiResponse<ExamPage<ExamCandidate>>>({ url: `/api/exam/exams/${examId}/candidates`, method: 'GET', params })
   );
+/** 从 CSV 批量导入考生；返回逐行导入结果。 */
+export const importExamCandidates = async (examId: number, file: File): Promise<UserImportResult> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await request<ApiResponse<UserImportResult>>({
+    url: `/api/exam/exams/${examId}/candidates/import`,
+    method: 'POST',
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return res.data as UserImportResult;
+};
+/** 导出考生名单为 CSV（Blob 下载）。 */
+export const exportExamCandidates = async (examId: number): Promise<Blob> =>
+  request<Blob>({
+    url: `/api/exam/exams/${examId}/candidates/export`,
+    method: 'GET',
+    responseType: 'blob'
+  });
 /** 替换考试批阅人。 */
 export const replaceExamReviewers = (examId: number, data: ExamReviewerPayload): Promise<void> =>
   selectSource(

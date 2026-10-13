@@ -1,13 +1,23 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { ElMessage } from 'element-plus';
-import { bindExamSelection, getExamCandidates, getExamReviewers, replaceExamReviewers, type ExamCandidate } from '@/api/exam';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import {
+  bindExamSelection,
+  exportExamCandidates,
+  getExamCandidates,
+  getExamReviewers,
+  importExamCandidates,
+  replaceExamReviewers,
+  type ExamCandidate
+} from '@/api/exam';
 import type { PersonPickerItem } from '@/api/person-picker';
 import type { PersonSelectionRequest } from '@/api/person-selection';
 import { getDeptManagementTree, type SystemDept } from '@/api/system-dept';
 import PersonSelectionDialog from '@/components/organization/PersonSelectionDialog.vue';
 import { CANDIDATE_STATUS_OPTIONS, getExamEnumLabel, REVIEWER_ASSIGNMENT_SOURCE_OPTIONS } from '@/constants/exam-options';
 import { DEFAULT_LIST_PAGE_SIZE, LIST_PAGE_SIZES } from '@/constants/pagination';
+import { hasPermission } from '@/utils/permission';
+import { useUserStore } from '@/stores/modules/user';
 
 const props = defineProps<{ examId: number; organizationId: number; examType: string; readOnly?: boolean }>();
 const emit = defineEmits<{ saved: [candidateCount: number, reviewerCount: number]; next: [] }>();
@@ -173,6 +183,56 @@ async function save(): Promise<void> {
   }
 }
 
+const userStore = useUserStore();
+/** 判断当前用户是否拥有指定操作权限。 */
+function canOperate(permission: string): boolean {
+  return hasPermission(userStore.userInfo, permission);
+}
+
+/** 考试考生 CSV 导入文件输入（隐藏，由按钮触发）。 */
+const examImportInput = ref<HTMLInputElement | null>(null);
+
+/** 导出当前考试考生名单为 CSV。 */
+async function handleExportExamCandidates(): Promise<void> {
+  try {
+    const blob = await exportExamCandidates(props.examId);
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `exam_candidates_${props.examId}_${Date.now()}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success('导出已开始');
+  } catch {
+    /* 全局错误提示已覆盖 */
+  }
+}
+
+/** 选择 CSV 后导入考生，并展示逐行结果。 */
+async function onImportExamCandidates(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) {
+    return;
+  }
+  try {
+    const result = await importExamCandidates(props.examId, file);
+    const failed = [
+      ...(result.fileErrors ?? []),
+      ...(result.failedRows ?? []).map((row) => `第 ${row.line} 行：${row.reason}`)
+    ];
+    if (failed.length > 0) {
+      await ElMessageBox.alert(failed.join('\n'), `导入完成：成功 ${result.successCount}，跳过 ${result.skippedCount}，失败 ${failed.length}`, { type: 'warning' });
+    } else {
+      ElMessage.success(`导入完成：成功 ${result.successCount}，跳过 ${result.skippedCount}`);
+    }
+    await loadCandidates();
+  } catch {
+    /* 全局错误提示已覆盖 */
+  }
+}
+
 onMounted(() => void load());
 </script>
 
@@ -266,7 +326,11 @@ onMounted(() => void load());
             <h2>已绑定考生</h2>
             <p>保存人员配置后，此处显示当前考试实际绑定的考生名单与状态。</p>
           </div>
-          <span class="ws-section__extra">共 {{ candidatePageTotal }} 人</span>
+          <ElSpace>
+            <ElButton v-if="canOperate('exam:exam:export')" @click="handleExportExamCandidates">导出名单</ElButton>
+            <ElButton v-if="canOperate('exam:exam:import')" type="primary" @click="examImportInput?.click()">导入名单</ElButton>
+            <span class="ws-section__extra">共 {{ candidatePageTotal }} 人</span>
+          </ElSpace>
         </div>
         <ElForm inline class="candidate-filter">
           <ElFormItem label="学员"><ElInput v-model="learnerKeyword" clearable placeholder="姓名或账号" @keyup.enter="queryCandidates" /></ElFormItem>
@@ -321,6 +385,7 @@ onMounted(() => void load());
       :preselected-users="selectedReviewers"
       @confirm="selectReviewers"
     />
+    <input ref="examImportInput" type="file" accept=".csv,text/csv" style="display: none" @change="onImportExamCandidates" />
   </ElCard>
 </template>
 

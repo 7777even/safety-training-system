@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { CircleCheckFilled, InfoFilled, Refresh, WarningFilled } from '@element-plus/icons-vue';
 import { getCourseOfferingDetail, type CourseOffering } from '@/api/course-operations';
 import type { PersonPickerItem } from '@/api/person-picker';
 import type { PersonSelectionRequest } from '@/api/person-selection';
+import { exportTrainingParticipants, importTrainingParticipants } from '@/api/training-plan';
+import { hasPermission } from '@/utils/permission';
+import { useUserStore } from '@/stores/modules/user';
 import type { TrainingExecutionGenerationResult, TrainingPlanStage } from '@/api/training-plan';
 import PersonSelectionDialog from '@/components/organization/PersonSelectionDialog.vue';
 
@@ -75,6 +78,8 @@ interface GenerationResultItem {
 }
 const props = defineProps<{
   mode: 'lifecycle' | 'participants';
+  /** 培训计划 ID，导入/导出参训人员时使用。 */
+  trainingPlanId?: number;
   /** 当前计划版本审批通过才可发布。 */
   canPublish?: boolean;
   publishStatus: string;
@@ -420,6 +425,57 @@ function confirmParticipantSelection(selection: PersonSelectionRequest): void {
   participantSelection.value = selection;
   emit('bindSelection', selection);
 }
+
+/** 判断当前用户是否拥有指定操作权限。 */
+const userStore = useUserStore();
+function canOperate(permission: string): boolean {
+  return hasPermission(userStore.userInfo, permission);
+}
+
+/** 参训人员 CSV 导入文件输入（隐藏，由按钮触发）。仅 DRAFT 计划可导入。 */
+const trainingImportInput = ref<HTMLInputElement | null>(null);
+
+/** 导出当前计划参训人员名单为 CSV。 */
+async function handleExportTrainingParticipants(): Promise<void> {
+  if (props.trainingPlanId == null) return;
+  try {
+    const blob = await exportTrainingParticipants(props.trainingPlanId);
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `training_participants_${props.trainingPlanId}_${Date.now()}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success('导出已开始');
+  } catch {
+    /* 全局错误提示已覆盖 */
+  }
+}
+
+/** 选择 CSV 后导入参训人员，并展示逐行结果。 */
+async function onImportTrainingParticipants(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file || props.trainingPlanId == null) {
+    return;
+  }
+  try {
+    const result = await importTrainingParticipants(props.trainingPlanId, file);
+    const failed = [
+      ...(result.fileErrors ?? []),
+      ...(result.failedRows ?? []).map((row) => `第 ${row.line} 行：${row.reason}`)
+    ];
+    if (failed.length > 0) {
+      await ElMessageBox.alert(failed.join('\n'), `导入完成：成功 ${result.successCount}，跳过 ${result.skippedCount}，失败 ${failed.length}`, { type: 'warning' });
+    } else {
+      ElMessage.success(`导入完成：成功 ${result.successCount}，跳过 ${result.skippedCount}`);
+    }
+    emit('refreshParticipants');
+  } catch {
+    /* 全局错误提示已覆盖 */
+  }
+}
 </script>
 
 <template>
@@ -429,9 +485,13 @@ function confirmParticipantSelection(selection: PersonSelectionRequest): void {
         <div class="card-header__main">
           <div class="card-header__title">
             <h2>{{ props.mode === 'lifecycle' ? '发布与执行' : '参训人员与结果' }}</h2>
-            <ElTooltip v-if="props.mode === 'participants'" content="刷新参训人员的最新状态和获得学时" placement="top">
-              <ElButton link :icon="Refresh" :loading="props.participantLoading" aria-label="刷新参训人员数据" @click="emit('refreshParticipants')" />
-            </ElTooltip>
+            <template v-if="props.mode === 'participants'">
+              <ElTooltip content="刷新参训人员的最新状态和获得学时" placement="top">
+                <ElButton link :icon="Refresh" :loading="props.participantLoading" aria-label="刷新参训人员数据" @click="emit('refreshParticipants')" />
+              </ElTooltip>
+              <ElButton v-if="canOperate('training:participant:export')" link type="primary" @click="handleExportTrainingParticipants">导出</ElButton>
+              <ElButton v-if="canOperate('training:participant:import')" link type="primary" @click="trainingImportInput?.click()">导入</ElButton>
+            </template>
           </div>
           <p>{{ props.mode === 'lifecycle' ? '按发布、生成、开始、同步、结束的顺序推进计划。' : '指派参训人员并查看学习进度和培训成绩。' }}</p>
           <!-- 关键口径固定在卡头：名单是这一步的阅读主体，指标不必在正文里再单独占一块高度。 -->
@@ -903,6 +963,7 @@ function confirmParticipantSelection(selection: PersonSelectionRequest): void {
         </div>
       </template>
     </ElDrawer>
+    <input ref="trainingImportInput" type="file" accept=".csv,text/csv" style="display: none" @change="onImportTrainingParticipants" />
   </ElCard>
 </template>
 

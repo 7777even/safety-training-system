@@ -1,5 +1,6 @@
 import type { ApiResponse } from '@shared/types';
 import type { PersonSelectionRequest } from './person-selection';
+import type { UserImportResult } from './system-user';
 import { request } from './request';
 
 export type TrainingNature = 'INITIAL' | 'REVIEW' | 'UNSPECIFIED';
@@ -337,6 +338,27 @@ export const getTrainingPlanParticipants = async (trainingPlanId: number): Promi
       method: 'GET'
     })
   );
+
+/** 从 CSV 批量导入参训人员；返回逐行导入结果。 */
+export const importTrainingParticipants = async (trainingPlanId: number, file: File): Promise<UserImportResult> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await request<ApiResponse<UserImportResult>>({
+    url: `/api/training/plans/${trainingPlanId}/participants/import`,
+    method: 'POST',
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return res.data as UserImportResult;
+};
+
+/** 导出参训人员名单为 CSV（Blob 下载）。 */
+export const exportTrainingParticipants = async (trainingPlanId: number): Promise<Blob> =>
+  request<Blob>({
+    url: `/api/training/plans/${trainingPlanId}/participants/export`,
+    method: 'GET',
+    responseType: 'blob'
+  });
 
 export const getTrainingPlanExecutionLinks = async (trainingPlanId: number): Promise<TrainingExecutionLink[]> =>
   unwrap(

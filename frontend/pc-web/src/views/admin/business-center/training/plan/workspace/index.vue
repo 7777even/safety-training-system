@@ -1237,6 +1237,7 @@ onMounted(async () => {
             <PlanExecutionPanel
               v-if="plan"
               mode="participants"
+              :training-plan-id="planId"
               :publish-status="plan.publishStatus"
               :can-assign="!approvalPending && canOperate('training:participant:assign')"
               :selected-user-id="selectedUserId"
