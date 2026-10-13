@@ -2256,6 +2256,30 @@
     "moduleId": 200
   },
   {
+    "id": 1006,
+    "pid": 201,
+    "name": "用户导入",
+    "path": "",
+    "comp": "",
+    "perms": "sys:user:import",
+    "icon": "",
+    "sort": 6,
+    "type": "F",
+    "moduleId": 200
+  },
+  {
+    "id": 1007,
+    "pid": 201,
+    "name": "用户导出",
+    "path": "",
+    "comp": "",
+    "perms": "sys:user:export",
+    "icon": "",
+    "sort": 7,
+    "type": "F",
+    "moduleId": 200
+  },
+  {
     "id": 202,
     "pid": 500,
     "name": "角色管理",

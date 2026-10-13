@@ -10,8 +10,12 @@ import com.sts.admin.mapper.*;
 import com.sts.admin.system.converter.SysUserConverter;
 import com.sts.admin.system.dto.ResetPasswordRequest;
 import com.sts.admin.system.dto.UserCreateRequest;
+import com.sts.admin.system.dto.UserExportData;
+import com.sts.admin.system.dto.UserImportResult;
 import com.sts.admin.system.dto.UserQuery;
 import com.sts.admin.system.dto.UserUpdateRequest;
+import com.sts.admin.system.imports.UserImportParser;
+import com.sts.admin.system.imports.UserImportParser.Row;
 import com.sts.admin.system.vo.UserVO;
 import com.sts.admin.tenant.CurrentTenantResolver;
 import com.sts.admin.tenant.TenantContext;
@@ -34,7 +38,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -63,6 +71,19 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserMapper, SysUser> 
     @Override
     public PageResult<UserVO> pageUsers(PageRequest<UserQuery> request) {
         UserQuery query = request.getQuery();
+        LambdaQueryWrapper<SysUser> wrapper = buildUserWrapper(query);
+        if (wrapper == null) {
+            return new PageResult<>(List.of(), 0);
+        }
+        wrapper.orderByDesc(SysUser::getCreateTime);
+        Page<SysUser> page = userMapper.selectPage(
+            new Page<>(request.getPageNum(), request.getPageSize()),
+            wrapper);
+        List<UserVO> list = page.getRecords().stream().map(this::toVO).toList();
+        return new PageResult<>(list, page.getTotal());
+    }
+
+    private LambdaQueryWrapper<SysUser> buildUserWrapper(UserQuery query) {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
         if (query != null) {
             wrapper.like(StringUtils.hasText(query.getUserCode()), SysUser::getUserCode, query.getUserCode())
@@ -73,18 +94,116 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserMapper, SysUser> 
             if (query.getDeptId() != null) {
                 List<Long> deptIds = deptService.listDescendantIds(query.getDeptId());
                 if (deptIds.isEmpty()) {
-                    return new PageResult<>(List.of(), 0);
+                    return null;
                 }
                 wrapper.in(SysUser::getDeptId, deptIds);
             }
         }
+        return wrapper;
+    }
 
+    @Override
+    public UserExportData exportUsers(UserQuery query) {
+        LambdaQueryWrapper<SysUser> wrapper = buildUserWrapper(query);
+        if (wrapper == null) {
+            wrapper = new LambdaQueryWrapper<>();
+        }
         wrapper.orderByDesc(SysUser::getCreateTime);
-        Page<SysUser> page = userMapper.selectPage(
-            new Page<>(request.getPageNum(), request.getPageSize()),
-            wrapper);
-        List<UserVO> list = page.getRecords().stream().map(this::toVO).toList();
-        return new PageResult<>(list, page.getTotal());
+        List<SysUser> users = userMapper.selectList(wrapper);
+        List<String> headers = List.of("登录名", "姓名", "手机号", "部门", "状态", "成员类型");
+        List<List<String>> rows = new ArrayList<>();
+        for (SysUser u : users) {
+            String deptName = u.getDeptId() == null ? "" : deptName(u.getDeptId());
+            rows.add(List.of(
+                nvl(u.getUserCode()),
+                nvl(u.getUserName()),
+                nvl(u.getPhone()),
+                deptName,
+                u.getStatus() == null ? "" : String.valueOf(u.getStatus()),
+                nvl(u.getMemberType())));
+        }
+        return new UserExportData(headers, rows);
+    }
+
+    private String deptName(Long deptId) {
+        SysDept dept = deptMapper.selectById(deptId);
+        return dept == null ? "" : nvl(dept.getDeptName());
+    }
+
+    @Override
+    @Transactional
+    public UserImportResult importUsers(MultipartFile file) {
+        int success = 0;
+        int skipped = 0;
+        List<UserImportResult.FailedRow> failed = new ArrayList<>();
+        List<String> fileErrors = new ArrayList<>();
+        if (file == null || file.isEmpty()) {
+            return UserImportResult.of(0, 0, failed, List.of("导入文件为空"));
+        }
+        UserImportParser.ParseResult parsed;
+        try {
+            parsed = UserImportParser.parse(file.getBytes());
+        } catch (Exception e) {
+            return UserImportResult.of(0, 0, failed, List.of("文件解析失败：" + e.getMessage()));
+        }
+        fileErrors.addAll(parsed.errors());
+        Long organizationId = currentTenantResolver.resolve(StpUtil.getLoginIdAsLong());
+        for (Row row : parsed.rows()) {
+            try {
+                Long count = userMapper.selectCount(new LambdaQueryWrapper<SysUser>()
+                                                      .eq(SysUser::getUserCode, row.userCode()));
+                if (count != null && count > 0) {
+                    skipped++;
+                    continue;
+                }
+                SysDept dept = deptMapper.selectOne(new LambdaQueryWrapper<SysDept>()
+                                                      .eq(SysDept::getDeptCode, row.deptCode())
+                                                      .eq(SysDept::getOrganizationId, organizationId));
+                if (dept == null) {
+                    failed.add(new UserImportResult.FailedRow(row.line(), "部门编码不存在或不属于当前租户"));
+                    continue;
+                }
+                UserCreateRequest req = new UserCreateRequest();
+                req.setUserCode(row.userCode());
+                req.setUserName(row.userName());
+                req.setPhone(row.phone());
+                req.setDeptId(dept.getDeptId());
+                req.setStatus(row.status());
+                req.setPassword(defaultInitialCredential());
+                createUser(req);
+                success++;
+            } catch (BusinessException e) {
+                failed.add(new UserImportResult.FailedRow(row.line(), e.getMessage()));
+            } catch (Exception e) {
+                failed.add(new UserImportResult.FailedRow(row.line(), "处理失败：" + e.getMessage()));
+            }
+        }
+        return UserImportResult.of(success, skipped, failed, fileErrors);
+    }
+
+    /** 初始密码常量（明文），按现有约定以 SHA-256 摘要后由 PasswordEncoder 再编码存储。 */
+    private static final String DEFAULT_INITIAL_PASSWORD_PLAIN = "123456";
+
+    private String defaultInitialCredential() {
+        return sha256Hex(DEFAULT_INITIAL_PASSWORD_PLAIN);
+    }
+
+    private static String sha256Hex(String plain) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(plain.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, 5000, "密码摘要失败");
+        }
+    }
+
+    private static String nvl(String v) {
+        return v == null ? "" : v;
     }
 
     @Override
