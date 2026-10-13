@@ -1,8 +1,11 @@
 package com.sts.training.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import com.sts.admin.system.dto.UserImportResult;
 import com.sts.common.api.PageRequest;
 import com.sts.common.api.PageResult;
+import com.sts.common.util.CsvContent;
+import com.sts.regulation.export.Utf8CsvExporter;
 import com.sts.training.dto.*;
 import com.sts.training.service.TrainingPlanService;
 import com.sts.training.vo.TrainingGenerateExecutionsResultVO;
@@ -11,7 +14,9 @@ import com.sts.training.vo.TrainingPlanVO;
 import com.sts.training.vo.TrainingPublishPrecheckVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -176,6 +181,26 @@ public class TrainingPlanController {
   public List<TrainingParticipantVO> bindSelection(@PathVariable Long trainingPlanId,
                                                    @RequestBody @Valid BindTrainingSelectionRequest request) {
     return trainingPlanService.bindSelection(trainingPlanId, request);
+  }
+
+  /**
+   * 从 CSV 批量导入参训人员（当前租户范围内按登录名/手机号匹配用户）。登录名重复则跳过（幂等）。
+   */
+  @PostMapping("/training/plans/{trainingPlanId}/participants/import")
+  @SaCheckPermission("training:participant:import")
+  public UserImportResult importParticipants(@PathVariable Long trainingPlanId,
+                                             @RequestParam("file") MultipartFile file) {
+    return trainingPlanService.importParticipants(trainingPlanId, file);
+  }
+
+  /**
+   * 导出参训人员名单为 CSV。
+   */
+  @GetMapping("/training/plans/{trainingPlanId}/participants/export")
+  @SaCheckPermission("training:participant:export")
+  public ResponseEntity<byte[]> exportParticipants(@PathVariable Long trainingPlanId) {
+    CsvContent data = trainingPlanService.exportParticipants(trainingPlanId);
+    return Utf8CsvExporter.download("training_participants.csv", "", data.headers(), data.rows());
   }
 
   /**

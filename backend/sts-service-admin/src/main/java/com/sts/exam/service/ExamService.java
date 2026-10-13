@@ -33,4 +33,14 @@ public interface ExamService {
   void replaceReviewers(Long examId, ExamReviewersReplaceRequest request);
 
   PageResult<ExamCandidateVO> pageCandidates(Long examId, PageRequest<ExamCandidateQuery> request);
+
+  /**
+   * 从 CSV 批量导入考生（当前租户范围内按登录名/手机号匹配用户）。登录名重复则跳过（幂等）。
+   */
+  com.sts.admin.system.dto.UserImportResult importCandidates(Long examId, org.springframework.web.multipart.MultipartFile file);
+
+  /**
+   * 导出考生名单为 CSV（当前考试全部考生）。
+   */
+  com.sts.common.util.CsvContent exportCandidates(Long examId);
 }

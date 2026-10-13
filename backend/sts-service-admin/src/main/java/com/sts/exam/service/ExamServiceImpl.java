@@ -24,12 +24,19 @@ import com.sts.paper.mapper.PaperMapper;
 import com.sts.paper.mapper.PaperVersionMapper;
 import com.sts.question.entity.QuestionBank;
 import com.sts.question.mapper.QuestionBankMapper;
+import com.sts.admin.entity.SysUser;
+import com.sts.admin.mapper.SysUserMapper;
+import com.sts.admin.system.dto.UserImportResult;
+import com.sts.common.util.CsvContent;
+import com.sts.common.util.CsvParser;
 import com.sts.person.service.PersonSelectionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -66,6 +73,9 @@ public class ExamServiceImpl
   private final ObjectMapper objectMapper;
   /** 统一评卷资格，不能仅依赖前端候选筛选。 */
   private final ExamReviewerEligibility reviewerEligibility;
+  /** 导入考生时按登录名/手机号解析用户，字段注入以避免改动构造签名影响既有测试。 */
+  @Autowired
+  private SysUserMapper sysUserMapper;
 
   @Override
   public PageResult<ExamVO> page(PageRequest<ExamQuery> request) {
@@ -291,6 +301,115 @@ public class ExamServiceImpl
     IPage<ExamCandidateVO> page = examCandidateQueryMapper.selectCandidatePage(
       new Page<>(request.getPageNum(), request.getPageSize()), examId, request.getQuery());
     return new PageResult<>(page.getRecords(), page.getTotal());
+  }
+
+  @Override
+  @Transactional
+  public UserImportResult importCandidates(Long examId, MultipartFile file) {
+    int success = 0;
+    int skipped = 0;
+    List<UserImportResult.FailedRow> failed = new ArrayList<>();
+    List<String> fileErrors = new ArrayList<>();
+    if (file == null || file.isEmpty()) {
+      return UserImportResult.of(0, 0, failed, List.of("导入文件为空"));
+    }
+    Exam exam = requireExamForUpdate(examId);
+    Long organizationId = exam.getOrganizationId();
+    List<CsvParser.Line> lines;
+    try {
+      lines = CsvParser.parse(file.getBytes());
+    } catch (Exception e) {
+      return UserImportResult.of(0, 0, failed, List.of("文件解析失败：" + e.getMessage()));
+    }
+    if (lines.isEmpty()) {
+      return UserImportResult.of(0, 0, failed, List.of("文件内容为空"));
+    }
+    var execution = assessmentExecutionService.findStandaloneByExamId(examId);
+    if (execution == null) {
+      execution = participantExecution(exam);
+    }
+    Long assessmentExecutionId = execution.getAssessmentExecutionId();
+    LocalDateTime now = LocalDateTime.now();
+    for (int i = 1; i < lines.size(); i++) {
+      CsvParser.Line line = lines.get(i);
+      List<String> cells = line.cells();
+      String userCode = cells.size() > 0 ? blankToNull(cells.get(0)) : null;
+      String phone = cells.size() > 2 ? blankToNull(cells.get(2)) : null;
+      if (userCode == null && phone == null) {
+        failed.add(new UserImportResult.FailedRow(line.number(), "登录名与手机号至少需其一"));
+        continue;
+      }
+      try {
+        SysUser user = resolveUser(userCode, phone, organizationId);
+        if (user == null) {
+          failed.add(new UserImportResult.FailedRow(line.number(), "登录名/手机号未匹配到当前租户用户"));
+          continue;
+        }
+        Long userId = user.getUserId();
+        ExamCandidate existing = examCandidateMapper.selectOne(new LambdaQueryWrapper<ExamCandidate>()
+                                                                .eq(ExamCandidate::getAssessmentExecutionId, assessmentExecutionId)
+                                                                .eq(ExamCandidate::getUserId, userId));
+        if (existing != null) {
+          skipped++;
+          continue;
+        }
+        ExamCandidate candidate = new ExamCandidate();
+        candidate.setAssessmentExecutionId(assessmentExecutionId);
+        candidate.setUserId(userId);
+        candidate.setAssignmentSource("IMPORT");
+        candidate.setCandidateProfileSnapshotJson(profileSnapshotAssembler.assemble(userId, organizationId));
+        candidate.setProfileSnapshotTime(now);
+        candidate.setCandidateStatus("NOT_STARTED");
+        candidate.setAttemptCount(0);
+        examCandidateMapper.insert(candidate);
+        success++;
+      } catch (Exception e) {
+        failed.add(new UserImportResult.FailedRow(line.number(), "处理失败：" + e.getMessage()));
+      }
+    }
+    return UserImportResult.of(success, skipped, failed, fileErrors);
+  }
+
+  @Override
+  public CsvContent exportCandidates(Long examId) {
+    requireExam(examId);
+    IPage<ExamCandidateVO> page = examCandidateQueryMapper.selectCandidatePage(
+      new Page<>(1, 10000), examId, new ExamCandidateQuery());
+    List<String> headers = List.of("登录名", "姓名", "部门", "状态", "最高分", "最终成绩");
+    List<List<String>> rows = new ArrayList<>();
+    for (ExamCandidateVO v : page.getRecords()) {
+      rows.add(List.of(nvl(v.getLearnerCode()), nvl(v.getLearnerName()), nvl(v.getDeptName()),
+        nvl(v.getCandidateStatus()), nvl(v.getBestScore()), nvl(v.getFinalScore())));
+    }
+    return new CsvContent(headers, rows);
+  }
+
+  private SysUser resolveUser(String userCode, String phone, Long organizationId) {
+    if (userCode != null) {
+      SysUser u = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>()
+                                            .eq(SysUser::getOrganizationId, organizationId)
+                                            .eq(SysUser::getUserCode, userCode));
+      if (u != null) {
+        return u;
+      }
+    }
+    if (phone != null) {
+      List<SysUser> users = sysUserMapper.selectList(new LambdaQueryWrapper<SysUser>()
+                                                      .eq(SysUser::getOrganizationId, organizationId)
+                                                      .eq(SysUser::getPhone, phone));
+      if (!users.isEmpty()) {
+        return users.get(0);
+      }
+    }
+    return null;
+  }
+
+  private static String blankToNull(String v) {
+    return v == null || v.isBlank() ? null : v.trim();
+  }
+
+  private static String nvl(Object v) {
+    return v == null ? "" : v.toString();
   }
 
   /**

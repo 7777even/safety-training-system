@@ -972,6 +972,30 @@
     "moduleId": 9530
   },
   {
+    "id": 6190,
+    "pid": 605,
+    "name": "考生导入",
+    "path": "",
+    "comp": "",
+    "perms": "exam:exam:import",
+    "icon": "",
+    "sort": 8,
+    "type": "F",
+    "moduleId": 9530
+  },
+  {
+    "id": 6191,
+    "pid": 605,
+    "name": "考生导出",
+    "path": "",
+    "comp": "",
+    "perms": "exam:exam:export",
+    "icon": "",
+    "sort": 9,
+    "type": "F",
+    "moduleId": 9530
+  },
+  {
     "id": 6120,
     "pid": 605,
     "name": "删除",
@@ -1544,6 +1568,30 @@
     "perms": "training:participant:assign",
     "icon": "",
     "sort": 7,
+    "type": "F",
+    "moduleId": 9530
+  },
+  {
+    "id": 7590,
+    "pid": 705,
+    "name": "参训导入",
+    "path": "",
+    "comp": "",
+    "perms": "training:participant:import",
+    "icon": "",
+    "sort": 8,
+    "type": "F",
+    "moduleId": 9530
+  },
+  {
+    "id": 7591,
+    "pid": 705,
+    "name": "参训导出",
+    "path": "",
+    "comp": "",
+    "perms": "training:participant:export",
+    "icon": "",
+    "sort": 9,
     "type": "F",
     "moduleId": 9530
   },

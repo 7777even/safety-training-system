@@ -1,17 +1,22 @@
 package com.sts.exam.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import com.sts.admin.system.dto.UserImportResult;
 import com.sts.common.api.PageRequest;
 import com.sts.common.api.PageResult;
+import com.sts.common.util.CsvContent;
 import com.sts.exam.dto.*;
 import com.sts.exam.service.ExamService;
 import com.sts.exam.service.OfflineScoreService;
 import com.sts.exam.vo.ExamCandidateVO;
 import com.sts.exam.vo.ExamVO;
 import com.sts.exam.vo.OfflineScoreRecordResult;
+import com.sts.regulation.export.Utf8CsvExporter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -97,6 +102,26 @@ public class ExamController {
   public PageResult<ExamCandidateVO> pageCandidates(@PathVariable Long examId,
                                                     PageRequest<ExamCandidateQuery> request) {
     return examService.pageCandidates(examId, request);
+  }
+
+  /**
+   * 从 CSV 批量导入考生（当前租户范围内按登录名/手机号匹配用户）。
+   */
+  @PostMapping("/exam/exams/{examId}/candidates/import")
+  @SaCheckPermission("exam:exam:import")
+  public UserImportResult importCandidates(@PathVariable Long examId,
+                                           @RequestParam("file") MultipartFile file) {
+    return examService.importCandidates(examId, file);
+  }
+
+  /**
+   * 导出考生名单为 CSV。
+   */
+  @GetMapping("/exam/exams/{examId}/candidates/export")
+  @SaCheckPermission("exam:exam:export")
+  public ResponseEntity<byte[]> exportCandidates(@PathVariable Long examId) {
+    CsvContent data = examService.exportCandidates(examId);
+    return Utf8CsvExporter.download("exam_candidates.csv", "", data.headers(), data.rows());
   }
 
   /**

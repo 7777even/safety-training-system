@@ -13,9 +13,15 @@ import com.sts.evaluation.entity.EvaluationForm;
 import com.sts.evaluation.entity.EvaluationFormVersion;
 import com.sts.evaluation.mapper.EvaluationFormMapper;
 import com.sts.evaluation.mapper.EvaluationFormVersionMapper;
+import com.sts.admin.entity.SysUser;
+import com.sts.admin.mapper.SysUserMapper;
+import com.sts.admin.system.dto.UserImportResult;
+import com.sts.common.util.CsvContent;
+import com.sts.common.util.CsvParser;
 import com.sts.person.dto.PersonSelectionRequest;
 import com.sts.person.service.PersonSelectionService;
 import com.sts.regulation.service.PlanHoursWarningRefreshService;
+import org.springframework.web.multipart.MultipartFile;
 import com.sts.training.dto.*;
 import com.sts.training.entity.*;
 import com.sts.training.mapper.*;
@@ -23,6 +29,7 @@ import com.sts.training.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -63,6 +70,9 @@ public class TrainingPlanServiceImpl
   private final TrainingPlanLifecycleService lifecycleService;
   private final PlanHoursWarningRefreshService planHoursWarningRefreshService;
   /** 当前版本审批门禁。 */ private final TrainingPlanApprovalService approvalService;
+  /** 导入参训人员时按登录名/手机号解析用户，字段注入以避免改动构造签名影响既有测试。 */
+  @Autowired
+  private SysUserMapper sysUserMapper;
 
   @Override
   public PageResult<TrainingPlanVO> page(PageRequest<TrainingPlanQuery> request) {
@@ -464,6 +474,121 @@ public class TrainingPlanServiceImpl
     }
     bumpParticipantVersion(plan);
     return result;
+  }
+
+  @Override
+  @Transactional
+  public UserImportResult importParticipants(Long trainingPlanId, MultipartFile file) {
+    int success = 0;
+    int skipped = 0;
+    List<UserImportResult.FailedRow> failed = new ArrayList<>();
+    List<String> fileErrors = new ArrayList<>();
+    if (file == null || file.isEmpty()) {
+      return UserImportResult.of(0, 0, failed, List.of("导入文件为空"));
+    }
+    TrainingPlan plan = requireDraftForParticipants(trainingPlanId);
+    Long organizationId = plan.getOrganizationId();
+    List<CsvParser.Line> lines;
+    try {
+      lines = CsvParser.parse(file.getBytes());
+    } catch (Exception e) {
+      return UserImportResult.of(0, 0, failed, List.of("文件解析失败：" + e.getMessage()));
+    }
+    if (lines.isEmpty()) {
+      return UserImportResult.of(0, 0, failed, List.of("文件内容为空"));
+    }
+    LocalDateTime now = LocalDateTime.now();
+    boolean changed = false;
+    for (int i = 1; i < lines.size(); i++) {
+      CsvParser.Line line = lines.get(i);
+      List<String> cells = line.cells();
+      String userCode = cells.size() > 0 ? blankToNull(cells.get(0)) : null;
+      String phone = cells.size() > 2 ? blankToNull(cells.get(2)) : null;
+      if (userCode == null && phone == null) {
+        failed.add(new UserImportResult.FailedRow(line.number(), "登录名与手机号至少需其一"));
+        continue;
+      }
+      try {
+        SysUser user = resolveUser(userCode, phone, organizationId);
+        if (user == null) {
+          failed.add(new UserImportResult.FailedRow(line.number(), "登录名/手机号未匹配到当前租户用户"));
+          continue;
+        }
+        Long userId = user.getUserId();
+        TrainingParticipant existing = trainingParticipantMapper.selectOne(new LambdaQueryWrapper<TrainingParticipant>()
+                                                                         .eq(TrainingParticipant::getTrainingPlanId, trainingPlanId)
+                                                                         .eq(TrainingParticipant::getUserId, userId));
+        if (existing != null) {
+          skipped++;
+          continue;
+        }
+        TrainingParticipant participant = new TrainingParticipant();
+        participant.setOrganizationId(organizationId);
+        participant.setTrainingPlanId(trainingPlanId);
+        participant.setUserId(userId);
+        participant.setParticipantOrgId(organizationId);
+        participant.setJoinSource("IMPORT");
+        participant.setJoinedTime(now);
+        participant.setParticipantStatus("PENDING");
+        participant.setOnlineHours(BigDecimal.ZERO);
+        participant.setOfflineHours(BigDecimal.ZERO);
+        trainingParticipantMapper.insert(participant);
+        success++;
+        changed = true;
+      } catch (Exception e) {
+        failed.add(new UserImportResult.FailedRow(line.number(), "处理失败：" + e.getMessage()));
+      }
+    }
+    if (changed) {
+      bumpParticipantVersion(plan);
+    }
+    return UserImportResult.of(success, skipped, failed, fileErrors);
+  }
+
+  @Override
+  public CsvContent exportParticipants(Long trainingPlanId) {
+    List<TrainingParticipantVO> participants = listParticipants(trainingPlanId);
+    List<String> headers = List.of("用户ID", "姓名", "加入方式", "加入时间", "状态", "线上学时", "线下学时");
+    List<List<String>> rows = new ArrayList<>();
+    for (TrainingParticipantVO v : participants) {
+      rows.add(List.of(
+        nvl(v.getUserId()),
+        nvl(v.getUserName()),
+        nvl(v.getJoinSource()),
+        nvl(v.getJoinedTime()),
+        nvl(v.getParticipantStatus()),
+        nvl(v.getOnlineHours()),
+        nvl(v.getOfflineHours())));
+    }
+    return new CsvContent(headers, rows);
+  }
+
+  private SysUser resolveUser(String userCode, String phone, Long organizationId) {
+    if (userCode != null) {
+      SysUser u = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>()
+                                            .eq(SysUser::getOrganizationId, organizationId)
+                                            .eq(SysUser::getUserCode, userCode));
+      if (u != null) {
+        return u;
+      }
+    }
+    if (phone != null) {
+      List<SysUser> users = sysUserMapper.selectList(new LambdaQueryWrapper<SysUser>()
+                                                      .eq(SysUser::getOrganizationId, organizationId)
+                                                      .eq(SysUser::getPhone, phone));
+      if (!users.isEmpty()) {
+        return users.get(0);
+      }
+    }
+    return null;
+  }
+
+  private static String blankToNull(String v) {
+    return v == null || v.isBlank() ? null : v.trim();
+  }
+
+  private static String nvl(Object v) {
+    return v == null ? "" : v.toString();
   }
 
   /** 名单属于审批内容，修改后必须重新审批。 */

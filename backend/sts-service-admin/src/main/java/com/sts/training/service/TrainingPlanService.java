@@ -30,6 +30,17 @@ public interface TrainingPlanService {
   List<TrainingParticipantVO> bindSelection(Long trainingPlanId, BindTrainingSelectionRequest request);
   TrainingGenerateExecutionsResultVO generateExecutions(Long trainingPlanId);
 
+  /**
+   * 从 CSV 批量导入参训人员（当前租户范围内按登录名/手机号匹配用户）。登录名重复则跳过（幂等）。
+   */
+  com.sts.admin.system.dto.UserImportResult importParticipants(Long trainingPlanId,
+                                                               org.springframework.web.multipart.MultipartFile file);
+
+  /**
+   * 导出参训人员名单为 CSV。
+   */
+  com.sts.common.util.CsvContent exportParticipants(Long trainingPlanId);
+
   void start(Long trainingPlanId, Integer version);
 
   void end(Long trainingPlanId, Integer version);
